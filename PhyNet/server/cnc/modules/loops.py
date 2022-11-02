@@ -1,5 +1,5 @@
 from colorama import Fore
-from ...global_modules.config import c2_config_t as tconf
+from .config import c2_config_t as tconf
 import time
 import requests
 
