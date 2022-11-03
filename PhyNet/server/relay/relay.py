@@ -8,7 +8,7 @@ from colorama import Fore, init
 import hashlib
 from cryptography.fernet import Fernet
 import requests
-from config import rl_config_t as tconf, rl_config_addr as addrconf, c2_config_addr as c2addrconf
+from modules.config import rl_config_t as tconf, rl_config_addr as addrconf, c2_config_addr as c2addrconf
 import random
 
 
@@ -36,7 +36,7 @@ enckeyD="kg6QH9EBtZUziQ8DdEqwnCknt7lKTfpc2zEEvb3Imms="
 passwd="b'gAAAAABixrd26TgeuuQmRhjWorB1oea-lO950B8hWYNHSTL2NvA3RW7A9MWAJXmDOeTJW9z5AWMp2pR0GHZqGPG36W2tXqPpLWkunwvc4CV8z5eJ0LNk5BU='"
 relaykey="gAAAAABi2DQ2aBL7F1w-YK7tJQwZb_lnZY099Q2iCXqcLbLZy75ULiQk_VYWFglVco5PJrr0X-Jov_OaGwmL5HL5oYGqpACT7IiGspfgByyXQgY6U5an0Hk="
 fer=Fernet(enckeyD)
-bots = {}
+bots={}
 speed=[]
 gkey=[]
 ogkey=[]
