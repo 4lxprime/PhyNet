@@ -20,6 +20,7 @@ class Client():
 
                     C                N                C
 """
+        self.banner=Colorate.Horizontal(Colors.yellow_to_red, self.banner, 2)
         self.ansi_clear='\033[2J\033[H'
         self.w=Fore.GREEN
         self.y=Fore.WHITE
@@ -271,5 +272,5 @@ class Client():
                 self.send(client, prompt, False)
             except:
                 break
-            
+
         client.close()
