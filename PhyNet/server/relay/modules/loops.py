@@ -60,7 +60,7 @@ class Loops():
 
     def ping(self) -> None:
         while 1:
-            for bot in self.config.bots:
+            for bot in self.config.bots.copy().keys():
                 try:
                     bot.settimeout(3)
                     self.send(bot, 'PING', False, False)
@@ -81,7 +81,7 @@ class Loops():
         while 1:
             self.config.speed.clear()
 
-            for bot in self.config.bots:
+            for bot in self.config.bots.copy().keys():
                 try:
                     bot.settimeout(3)
                     self.send(bot, f'NETSPEED', False, False)
@@ -147,7 +147,7 @@ class Loops():
                     if self.api_key(i): self.log("apikey op")
                     else: self.log("apikey error")
 
-            for bot in self.config.bots:
+            for bot in self.config.bots.copy().keys():
                 try:
                     bot.settimeout(3)
                     if k != []:

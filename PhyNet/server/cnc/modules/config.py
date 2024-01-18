@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, ClassVar
+from typing import ClassVar
 from socket import socket as Sock
 from cryptography.fernet import Fernet
 from colorama import Fore
@@ -46,9 +46,9 @@ class C2Config:
     fernet: Fernet
     bots: list[int] # number of bots
     speed: list[int] # actual netspeed of all bot
-    relay_list: dict[Sock, Any]
-    relay_bots: list[dict[str, Any]]
-    temp_relay_bots: list[dict[str, Any]]
+    relay_list: dict[Sock, tuple[str, int]]
+    relay_bots: list[dict[str, (str | int | bool)]] # bit complex type but its just a list of dict that can contain str, int, bool with a string
+    temp_relay_bots: list[dict[str, (str | int | bool)]] # here this is the same as relay_bots
 
     # config elements
     cnc_addr: c2_config_addr

