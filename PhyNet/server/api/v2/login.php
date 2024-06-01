@@ -43,22 +43,19 @@ $stmt->close();
 
 // not used, this function work and should be used each time
 // we want to create a new user
-function createAccount(string $usr, string $password): void {
-    global $conn;
+function createAccount(string $usr, string $password): bool {
+    global $conn; // ensure to have the db conn
 
+    // the final password is sha512(sha256(password))
     $password = hash('sha256', $password);
     $password = hash('sha512', $password);
 
+    // insert the new user in the database
     $stmt = $conn->prepare("INSERT INTO users (username, password) VALUES (?, ?)");
     $stmt->bind_param("ss", $usr, $password);
     $result = $stmt->execute();
 
-    if ($result) {
-        echo json_encode("ok", JSON_PRETTY_PRINT);
-
-    } else {
-        echo json_encode("error", JSON_PRETTY_PRINT);
-    }
+    return $result;
 }
 
 ?>
