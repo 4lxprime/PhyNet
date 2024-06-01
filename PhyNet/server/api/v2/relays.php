@@ -1,87 +1,69 @@
 <?php
 
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST');
-header("Access-Control-Allow-Headers: X-Requested-With");
+include 'utils.php';
+include 'db/db_conn.php';
 
-$urlkey=htmlspecialchars($_GET['urlkey']);
-$ip=htmlspecialchars($_GET['ip']);
-$bots=htmlspecialchars($_GET['bots']);
-$act=htmlspecialchars($_GET['act']);
-$key="VEIDVOE9oN8O3C4TnU2RIN1O0rF82mU6RuJwHFQ6GH5mF4NQ3pZ8Z6R7A8dL0";
+setHeaders();
+
+$urlkey = htmlspecialchars($_GET['urlkey']);
+$ip = htmlspecialchars($_GET['ip']);
+$bots = htmlspecialchars($_GET['bots']);
+$act = htmlspecialchars($_GET['act']);
 
 ?>
 
 <?php
 
-include 'db/db_conn.php';
+if (!isKey($urlkey)) {
+    echo json_encode("bad_key", JSON_PRETTY_PRINT);
+    exit(401);
+}
 
-if ($urlkey===$key) {
+if ($act === "True") {
+    $stmt = $conn->prepare("DELETE FROM relays");
+    $stmt->execute();
+    $result = $stmt->get_result();
 
-    if ($act==="True") {
-        $sql="DELETE FROM relays";
-        $result=mysqli_query($conn, $sql);
-
-        if ($result==TRUE) {
-
-            echo json_encode("ok", JSON_PRETTY_PRINT);
-
-        } else {
-
-            echo json_encode("error", JSON_PRETTY_PRINT);
-
-        }
-
-    } else if ($act==="False") {
-        $sql="SELECT relay_ip, relay_bots FROM relays WHERE relay_ip='$ip'";
-        $result=mysqli_query($conn, $sql);
-
-        if (mysqli_num_rows($result)==0) {
-            $sql="INSERT INTO relays (relay_ip, relay_bots) VALUES ('$ip', '$bots')";
-            $result=mysqli_query($conn, $sql);
-
-            if ($result==TRUE) {
-                
-                echo json_encode("ok", JSON_PRETTY_PRINT);
-
-            } else {
-
-                echo json_encode("error", JSON_PRETTY_PRINT);
-
-            }
-
-        } else {
-            $row=mysqli_fetch_assoc($result);
-            
-            if ($row['relay_bots']!=$bots) {
-                $sql="UPDATE relays SET relay_bots='$bots' WHERE relay_ip='$ip'";
-                $result=mysqli_query($conn, $sql);
-
-                if ($result==TRUE) {
-
-                    echo json_encode("ok", JSON_PRETTY_PRINT);
-
-                } else {
-
-                    echo json_encode("error", JSON_PRETTY_PRINT);
-
-                }
-
-            } else {
-                
-                echo json_encode("ok", JSON_PRETTY_PRINT);
-
-            }
-
-        }
-
+    if (!$result) {
+        echo json_encode("error", JSON_PRETTY_PRINT);
+        exit(500);
     }
 
-} else {
+} else if ($act==="False") {
+    $stmt = $conn->prepare("SELECT relay_ip, relay_bots FROM relays WHERE relay_ip=?");
+    $stmt->bind_param("s", $ip);
+    $stmt->execute();
+    $result = $stmt->get_result();
 
-    echo json_encode("bad_key", JSON_PRETTY_PRINT);
+    if (mysqli_num_rows($result) == 0) {
+        $stmt = $conn->prepare("INSERT INTO relays (relay_ip, relay_bots) VALUES (?, ?)");
+        $stmt->bind_param("ss", $ip, $bots);
+        $resultInsert = $stmt->execute();
 
+        if (!$resultInsert) {
+            echo json_encode("error", JSON_PRETTY_PRINT);
+            exit(500);
+        }
+        
+    } else {
+        $rows = $result->fetch_assoc();
+        
+        if ($rows['relay_bots'] != $bots) {
+            $stmt = $conn->prepare("UPDATE relays SET relay_bots=? WHERE relay_ip=?");
+            $stmt->bind_param("ss", $bots, $ip);
+            $resultUpdate = $stmt->execute();
+    
+            if (!$resultUpdate) {
+                echo json_encode("error", JSON_PRETTY_PRINT);
+                exit(500);
+            }
+        }
+    }
 }
+
+echo json_encode("ok", JSON_PRETTY_PRINT);
+exit(200);
+
+$stmt->close();
 
 ?>

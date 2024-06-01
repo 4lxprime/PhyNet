@@ -3,7 +3,6 @@ from socket import AF_INET, SOCK_STREAM, SOL_SOCKET, SO_KEEPALIVE, SOCK_DGRAM
 from threading import Thread
 from time import sleep, time
 from os import system, path as ospath
-import requests
 from speedtest import Speedtest
 from json import load
 from cryptography.fernet import Fernet

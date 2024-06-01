@@ -1,40 +1,37 @@
 <?php
 
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST');
-header("Access-Control-Allow-Headers: X-Requested-With");
+include 'utils.php';
+include 'db/db_conn.php';
 
-$urlkey=htmlspecialchars($_GET['urlkey']);
-$key="VEIDVOE9oN8O3C4TnU2RIN1O0rF82mU6RuJwHFQ6GH5mF4NQ3pZ8Z6R7A8dL0";
-$rip=htmlspecialchars($_GET['rip']);
+setHeaders();
+
+$urlkey = htmlspecialchars($_GET['urlkey']);
+$rip = htmlspecialchars($_GET['rip']);
 
 ?>
 
 <?php
 
-include 'db/db_conn.php';
-
-if ($urlkey===$key) {
-
-    $sql="SELECT gkey FROM gkeys WHERE relay='$rip'";
-    $result=mysqli_query($conn, $sql);
-
-    if (mysqli_num_rows($result)!=0) {
-        $row=mysqli_fetch_assoc($result);
-
-        echo json_encode($row['gkey'], JSON_PRETTY_PRINT);
-
-    } else {
-
-        echo json_encode("error", JSON_PRETTY_PRINT);
-
-    }
-
-} else {
-
+if (!isKey($urlkey)) {
     echo json_encode("bad_key", JSON_PRETTY_PRINT);
-
+    exit(401);
 }
+
+$stmt = $conn->prepare("SELECT gkey FROM gkeys WHERE relay=?");
+$stmt->bind_param("s", $rip);
+$stmt->execute();
+$result = $stmt->get_result();
+
+if (mysqli_num_rows($result) == 0) {
+    echo json_encode("error", JSON_PRETTY_PRINT);
+    exit(500);
+}
+
+$rows = $result->fetch_assoc();
+
+echo json_encode($rows['gkey'], JSON_PRETTY_PRINT);
+exit(200);
+
+$stmt->close();
 
 ?>
