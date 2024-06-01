@@ -12,6 +12,8 @@ $act = htmlspecialchars($_GET['act']);
 
 ?>
 
+<!-- This page will be used for deleting/updating relays stats -->
+
 <?php
 
 if (!isKey($urlkey)) {

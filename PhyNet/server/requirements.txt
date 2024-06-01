@@ -1,3 +1,4 @@
 colorama
 cryptography
 pystyle
+typing_extensions

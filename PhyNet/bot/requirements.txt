@@ -1,4 +1,4 @@
 cryptography
 requests
-speedtest
+speedtest-cli
 psutil

