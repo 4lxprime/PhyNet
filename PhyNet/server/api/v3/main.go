@@ -1,6 +1,9 @@
 package main
 
 import (
+	"crypto/sha256"
+	"crypto/sha512"
+	"encoding/hex"
 	"log"
 
 	dbs "github.com/4lxprime/PhyNet/PhyNet/server/api/v3/internal/databases"
@@ -19,6 +22,22 @@ func Secure(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 		}
 
 		next(ctx)
+	}
+}
+
+func createAccount(username, password string) {
+	password256Bytes := sha256.Sum256([]byte(password))
+	passwordHash256 := hex.EncodeToString(password256Bytes[:])
+
+	password512Bytes := sha512.Sum512([]byte(passwordHash256))
+	passwordHash := hex.EncodeToString(password512Bytes[:])
+
+	if _, err := dbs.GetPostgres().Exec(
+		`INSERT INTO users (username, password) VALUES ($1, $2)`,
+		username,
+		passwordHash,
+	); err != nil {
+		log.Fatal(err)
 	}
 }
 

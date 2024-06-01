@@ -46,22 +46,23 @@ CREATE TABLE users (
 
 INSERT INTO users (id, username, password) VALUES (1, 'root', 'a528e21133187fecdd0c8f5c583733cfe86e7b6e3857dcd5682f6f54fb17fcce8f9da13c8c90854741df8d096f3d415291a4f6b7f08028a47c6abc82a2ea760c');
 ```
-(the password encryption is sha512)   
-In php you can use this function for generate a password
-```php
-function createAccount(string $usr, string $password): bool {
-    global $conn; // ensure to have the db conn
+(the password encryption is sha512(sha256(password)))   
+In golang you can use this function for generate a password (you can just call it in the api main function once)
+```golang
+func createAccount(username, password string) {
+	password256Bytes := sha256.Sum256([]byte(password))
+	passwordHash256 := hex.EncodeToString(password256Bytes[:])
 
-    // the final password is sha512(sha256(password))
-    $password = hash('sha256', $password);
-    $password = hash('sha512', $password);
+	password512Bytes := sha512.Sum512([]byte(passwordHash256))
+	passwordHash := hex.EncodeToString(password512Bytes[:])
 
-    // insert the new user in the database
-    $stmt = $conn->prepare("INSERT INTO users (username, password) VALUES (?, ?)");
-    $stmt->bind_param("ss", $usr, $password);
-    $result = $stmt->execute();
-
-    return $result;
+	if _, err := dbs.GetPostgres().Exec(
+		`INSERT INTO users (username, password) VALUES ($1, $2)`,
+		username,
+		passwordHash,
+	); err != nil {
+		log.Fatal(err)
+	}
 }
 ```
 Next, you will need to build and start the api server which in v3 is in golang so you doesn't need a php server anymore, just a simple `make api` will run it but before you will need to have golang installed [like This](https://go.dev/doc/install) and you will also need to have a postgresql server as main database (postgresql is an application which is running on a server, so you can buy dedicated postgresql servers on the cloud (AWS, OVH, etc) or you can run your own on your computer or your server [Like This](https://www.postgresql.org/download/) or [With Docker](https://www.docker.com/blog/how-to-use-the-postgres-docker-official-image/))  
