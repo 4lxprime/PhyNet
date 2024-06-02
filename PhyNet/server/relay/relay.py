@@ -40,6 +40,7 @@ def send(
 ) -> None:
     if reset: data += config.COLOR_RESET
     if escape: data += '\r\n'
+    data += '\x00'
 
     s.send(data.encode())
 

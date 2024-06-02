@@ -13,15 +13,15 @@ import (
 func HandleDispatch(ctx *fasthttp.RequestCtx) {
 	conn := dbs.GetPostgres()
 
-	var relay string
+	var relayIp string
 	if err := conn.QueryRow(
-		`SELECT MIN(relay_bots) FROM relays`,
-	).Scan(&relay); err != nil {
+		`SELECT relay_ip FROM relays ORDER BY relay_bots ASC LIMIT 1`,
+	).Scan(&relayIp); err != nil {
 		ctx.SetStatusCode(500)
 		return
 	}
 
-	ctx.SetBodyString(relay)
+	ctx.SetBodyString(relayIp)
 	ctx.SetStatusCode(200)
 }
 

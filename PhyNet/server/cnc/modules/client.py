@@ -6,6 +6,7 @@ from pystyle import Colors, Colorate
 from .config import C2Config
 from .loops import Loops
 
+# the client is used only for ui
 class Client():
     def __init__(
         self,

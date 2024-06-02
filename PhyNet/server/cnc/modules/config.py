@@ -40,7 +40,7 @@ class Relay:
 
     @staticmethod
     def new(ip: str) -> Self:
-        Relay(ip, 0)
+        return Relay(ip, 0)
 
 @dataclass
 class C2Config:

